@@ -23,6 +23,9 @@ class Level1 extends Phaser.Scene {
       "assets/tiled/maps/marcoLadrillos.json"
     );
 
+    // --- HARPOON ASSETS ---
+    this.load.image("arponFijo", "assets/sprites/static/arponFijo.png"); // El arpón que se detiene/cuelga
+
     // --- HERO SPRITESHEETS ---
     this.load.setPath("assets/sprites/spritesheets/hero");
 

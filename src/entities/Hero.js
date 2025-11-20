@@ -1,5 +1,6 @@
 // src/entities/Hero.js
 import { HERO } from '../core/constants.js';
+import { Harpoon } from '../objects/Harpoon.js';
 
 export class Hero extends Phaser.Physics.Arcade.Sprite {
     /**
@@ -16,11 +17,16 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
         this.scene.add.existing(this);
         this.scene.physics.world.enable(this);
 
+        // Asegurar que el jugador se dibuje por encima del arpón
+        // Usa un depth mayor al depth que tenga el arpón (por defecto 0)
+        this.setDepth(10);
+        
         this.body.setCollideWorldBounds(true);
 
         // Flags de disparo
         this.isShooting   = false; // mientras dura la animación
         this.shootPressed = false; // para que solo dispare una vez por pulsación
+        this.activeHarpoon = null;
 
         // Colisiones
         this.setColliders();
@@ -75,10 +81,17 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
     }
 
     shoot() {
-        if (this.isShooting) return; // seguridad extra
+        if (this.isShooting || this.activeHarpoon) return; // seguridad extra
 
         this.isShooting = true;
         console.log('DISPARO SUPER PANG!');
+
+        const launchX = this.x;
+        // Empezar JUSTO debajo de los pies del player (+2 px de margen)
+        const launchY = this.body ? Math.round(this.body.bottom + 2) : Math.round(this.y + (this.displayHeight / 2) + 2);
+
+        // Crear una instancia del arpón y guardarla
+        this.activeHarpoon = new Harpoon(this.scene, launchX, launchY, 'arponFijo');
 
         // Parar movimiento mientras dispara
         this.body.setVelocityX(0);
@@ -86,13 +99,17 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
         // Animación de disparo
         this.anims.play('shoot', true);
 
-        // Cuando termine la animación, desbloquear el movimiento
+        // Cuando termine la animación, desbloquear movimiento (pero no el volver a disparar,
+        // eso lo controla activeHarpoon hasta que el arpón toque el techo y desaparezca)
         this.once(Phaser.Animations.Events.ANIMATION_COMPLETE, (anim) => {
             if (anim.key === 'shoot') {
                 this.isShooting = false;
-                // El siguiente preUpdate ya pondrá idle/run según input
             }
         });
+    }
+
+    harpoonDestroyed() {
+        this.activeHarpoon = null;
     }
 
     preUpdate(time, delta) {
