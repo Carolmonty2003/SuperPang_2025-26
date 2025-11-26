@@ -11,7 +11,16 @@ class Level1 extends Phaser.Scene {
 
   preload() {
     // --- FONDO ---
-    this.load.image("bg_01", "assets/sprites/backgrounds/bg_01.png");
+    this.load.spritesheet(
+      "backgrounds",
+      "assets/sprites/backgrounds/backgrounds.png",
+      {
+        // 10240 px de ancho / 40 mapas = 256
+        frameWidth: 256,
+        frameHeight: 192, // alto total del spritesheet
+      }
+    );
+
 
     // --- TILEMAP / TILESET ---
     this.load.image(
@@ -43,7 +52,7 @@ class Level1 extends Phaser.Scene {
   create() {
     // --- FONDO ---
     // La imagen solo ocupa la parte superior: 1536 x 832
-    const bg = this.add.image(0, 0, "bg_01").setOrigin(0, 0);
+    const bg = this.add.image(0, 0, "backgrounds", 0).setOrigin(0, 0);
     bg.setDisplaySize(GAME_SIZE.WIDTH, BG_HEIGHT);
 
     // (Opcional) Por si quieres asegurarte de que la cámara usa el fondo negro
