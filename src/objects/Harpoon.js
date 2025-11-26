@@ -19,9 +19,8 @@ export class Harpoon extends Phaser.Physics.Arcade.Sprite {
         const originalSpriteWidth = (this.width && this.width > 0) ? this.width : 8;
         this._baseWidth = Math.round(originalSpriteWidth * 3);
 
-        // FACTOR para el collider (0.0 - 1.0). Menor = collider más estrecho.
+        // Ajustables: factor ancho collider y desplazamiento fino (px)
         this.COLLIDER_WIDTH_FACTOR = 0.35;
-        // Ajuste fino horizontal del collider (px). Prueba -6, -3, 0, 3, etc.
         this.COLLIDER_OFFSET_X = -3;
 
         // Propiedades de extensión
@@ -39,14 +38,10 @@ export class Harpoon extends Phaser.Physics.Arcade.Sprite {
         this.body.setAllowGravity(false);
         this.body.setImmovable(true);
 
-        // Sincronizar body inicial usando displayWidth/displayHeight pero estrechando el ancho
+        // No uses setOffset aquí: body se posicionará manualmente en preUpdate()
         const initialBodyW = Math.max(2, Math.round(this.displayWidth * this.COLLIDER_WIDTH_FACTOR));
         const initialBodyH = Math.max(1, Math.round(this.displayHeight));
         this.body.setSize(initialBodyW, initialBodyH);
-        // centrar horizontalmente el body respecto al sprite y aplicar ajuste fino
-        const initialOffsetX = -10000//Math.round((this.displayWidth - initialBodyW) / 2 + this.COLLIDER_OFFSET_X);
-        this.body.setOffset(initialOffsetX, 0);
-        if (this.body.updateFromGameObject) this.body.updateFromGameObject();
     }
 
     // No añadir collider con walls para que el arpón solo termine al tocar techo.
@@ -94,18 +89,36 @@ export class Harpoon extends Phaser.Physics.Arcade.Sprite {
                 this._currentHeight = maxPossible;
             }
 
-            // Mantener el ancho aumentado y actualizar altura (la base permanece en baseY)
+            // Actualizar tamaño visual (la base permanece en baseY)
             this.setDisplaySize(this._baseWidth, this._currentHeight);
 
-            // Sincronizar el body exactamente con el display (offset centrado, ancho reducido)
+            // Actualizar tamaño del body (ancho reducido) y POSICIONARLO MANUALMENTE
             if (this.body && this.body.setSize) {
                 const bodyW = Math.max(2, Math.round(this.displayWidth * this.COLLIDER_WIDTH_FACTOR));
                 const bodyH = Math.max(1, Math.round(this.displayHeight));
                 this.body.setSize(bodyW, bodyH);
-                // centrar y aplicar ajuste fino en cada frame
-                const offsetX = Math.round((this.displayWidth - bodyW) / 2 + this.COLLIDER_OFFSET_X);
-                this.body.setOffset(offsetX, 0);
-                if (this.body.updateFromGameObject) this.body.updateFromGameObject();
+
+                // Calcular top-left del sprite según origin y display size
+                const spriteLeft = this.x - this.displayWidth * this.originX;
+                const spriteTop = this.y - this.displayHeight * this.originY;
+
+                // Centrar el collider horizontalmente y aplicar ajuste fino
+                const bx = Math.round(spriteLeft + (this.displayWidth - bodyW) / 2 + this.COLLIDER_OFFSET_X);
+                const by = Math.round(spriteTop); // top del sprite (origen y = 1 hace que y = base)
+
+                // Asignar al body (y a position para consistencia en Arcade)
+                this.body.x = bx;
+                this.body.y = by;
+                if (this.body.position) {
+                    this.body.position.x = bx;
+                    this.body.position.y = by;
+                }
+
+                // (opcional) actualizar center para usos internos
+                if (this.body.center) {
+                    this.body.center.x = bx + bodyW / 2;
+                    this.body.center.y = by + bodyH / 2;
+                }
             }
 
             // Comprobar si la punta ha alcanzado el techo
