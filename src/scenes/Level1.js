@@ -93,13 +93,8 @@ class Level1 extends Phaser.Scene {
         // --- Atajo de pausa con ESC ---
   // --- Atajo de pausa con ESC ---
   this.input.keyboard.on("keydown-ESC", () => {
-    // Lanzamos el menú de pausa encima
     this.scene.launch("PauseMenu");
-
-    // Pausamos esta escena
     this.scene.pause();
-
-    // Por si acaso, nos aseguramos de que el PauseMenu queda arriba
     this.scene.bringToTop("PauseMenu");
   });
   }

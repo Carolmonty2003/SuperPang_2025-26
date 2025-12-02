@@ -38,21 +38,23 @@ export class MainMenuScene extends Phaser.Scene {
   });
 
   // ---------- BOTÓN OPCIONES ----------
-  const optionsText = this.add.text(centerX, centerY + 80, "OPTIONS", {
-    fontSize: "32px",
-    fill: "#ffffff",
-    fontFamily: "Arial",
-  }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+const optionsText = this.add.text(centerX, centerY + 80, "OPTIONS", {
+  fontSize: "32px",
+  fill: "#ffffff",
+  fontFamily: "Arial",
+}).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
-  optionsText.on("pointerover", () =>
-    optionsText.setStyle({ fill: "#f39c12" })
-  );
-  optionsText.on("pointerout", () =>
-    optionsText.setStyle({ fill: "#ffffff" })
-  );
-  optionsText.on("pointerdown", () => {
-    this.scene.start("OptionsMenu"); // ← escena que creamos antes
-  });
+optionsText.on("pointerover", () =>
+  optionsText.setStyle({ fill: "#f39c12" })
+);
+optionsText.on("pointerout", () =>
+  optionsText.setStyle({ fill: "#ffffff" })
+);
+
+optionsText.on("pointerdown", () => {
+  this.scene.start("OptionsMenu", { from: "main" });
+});
+
 
   // ---------- BOTÓN SALIR ----------
   const exitText = this.add.text(centerX, centerY + 140, "EXIT", {

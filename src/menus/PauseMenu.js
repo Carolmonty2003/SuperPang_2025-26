@@ -7,17 +7,21 @@ export class PauseMenu extends Phaser.Scene {
 
   create() {
     const cam = this.cameras.main;
-    const centerX = cam.centerX;
-    const centerY = cam.centerY;
 
-    // Fondo semitransparente encima del juego pausado
+    const width = cam.width;
+    const height = cam.height;
+
+    const centerX = width / 2;
+    const centerY = height / 2;
+
+    // Fondo semitransparente EN TODA LA PANTALLA
     this.add
-      .rectangle(centerX, centerY, cam.width, cam.height, 0x000000, 0.7)
-      .setOrigin(0.5);
+      .rectangle(0, 0, width, height, 0x000000, 0.7)
+      .setOrigin(0); // esquina superior izquierda
 
     // Título PAUSE
     this.add
-      .text(centerX, centerY - 180, "PAUSE", {
+      .text(centerX, centerY - 120, "PAUSE", {
         fontSize: "48px",
         fontFamily: "Arial",
         color: "#ffffff",
@@ -26,7 +30,7 @@ export class PauseMenu extends Phaser.Scene {
 
     // === BOTÓN RESTART ===
     const restartText = this.add
-      .text(centerX, centerY - 40, "RESTART", {
+      .text(centerX, centerY - 20, "RESTART", {
         fontSize: "32px",
         fontFamily: "Arial",
         color: "#ffffff",
@@ -41,39 +45,39 @@ export class PauseMenu extends Phaser.Scene {
       restartText.setStyle({ color: "#ffffff" })
     );
     restartText.on("pointerdown", () => {
-      // Paramos el nivel actual y lo volvemos a iniciar
       this.scene.stop("Level1");
       this.scene.start("Level1");
-      // Cerramos el menú de pausa
-      this.scene.stop(); // o this.scene.stop("PauseMenu");
+      this.scene.stop(); // cierra PauseMenu
     });
 
-    /// === BOTÓN OPTIONS (en medio) ===
-const optionsText = this.add
-  .text(centerX, centerY + 40, "OPTIONS", {
-    fontSize: "32px",
-    fontFamily: "Arial",
-    color: "#ffffff",
-  })
-  .setOrigin(0.5)
-  .setInteractive({ useHandCursor: true });
+    // === BOTÓN OPTIONS (en medio) ===
+    const optionsText = this.add
+      .text(centerX, centerY + 40, "OPTIONS", {
+        fontSize: "32px",
+        fontFamily: "Arial",
+        color: "#ffffff",
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
 
     optionsText.on("pointerover", () =>
-    optionsText.setStyle({ color: "#f39c12" })
-);
+      optionsText.setStyle({ color: "#f39c12" })
+    );
     optionsText.on("pointerout", () =>
-    optionsText.setStyle({ color: "#ffffff" })
-);
+      optionsText.setStyle({ color: "#ffffff" })
+    );
 
-// no paramos Level1, solo vamos a OptionsMenu
     optionsText.on("pointerdown", () => {
-    this.scene.start("OptionsMenu", { from: "pause" });
-});
-
+      // Lanzamos OptionsMenu ENCIMA, pasando que venimos de pausa
+      this.scene.launch("OptionsMenu", { from: "pause" });
+      this.scene.bringToTop("OptionsMenu");
+      // Cerramos el PauseMenu (Level1 sigue pausado debajo)
+      this.scene.stop();
+    });
 
     // === BOTÓN EXIT ===
     const exitText = this.add
-      .text(centerX, centerY + 80, "EXIT", {
+      .text(centerX, centerY + 100, "EXIT", {
         fontSize: "32px",
         fontFamily: "Arial",
         color: "#ffffff",
@@ -88,16 +92,15 @@ const optionsText = this.add
       exitText.setStyle({ color: "#ffffff" })
     );
     exitText.on("pointerdown", () => {
-      // Cerramos el nivel y volvemos al menú principal
       this.scene.stop("Level1");
       this.scene.start("MainMenuScene");
       this.scene.stop();
     });
 
-    // === ESC para reanudar la partida (opcional pero muy cómodo) ===
+    // ESC para reanudar el juego
     this.input.keyboard.on("keydown-ESC", () => {
       this.scene.resume("Level1");
-      this.scene.stop();
+      this.scene.stop(); // cierra PauseMenu
     });
   }
 }

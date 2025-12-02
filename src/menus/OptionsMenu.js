@@ -43,15 +43,14 @@ export class OptionsMenu extends Phaser.Scene {
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
 
-    // Volumen inicial: primero miro en el registry,
-    // si no hay, uso el volumen global actual de Phaser, o 1.
+    // Volumen inicial
     let initialVolume = this.registry.get("volume");
     if (typeof initialVolume !== "number") {
       initialVolume =
         typeof this.sound.volume === "number" ? this.sound.volume : 1;
     }
 
-    // Texto que muestra el valor de volumen
+    // Texto del valor de volumen
     const volumeText = this.add
       .text(centerX, trackY - 40, "", {
         fontSize: "24px",
@@ -60,7 +59,7 @@ export class OptionsMenu extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    // Handle (circulito que arrastramos)
+    // Handle (circulito)
     const handle = this.add
       .circle(
         Phaser.Math.Linear(minX, maxX, initialVolume),
@@ -72,35 +71,34 @@ export class OptionsMenu extends Phaser.Scene {
 
     this.input.setDraggable(handle);
 
-    // Función para aplicar volumen 0–1 y actualizar UI
     const applyVolume = (vol) => {
       const clamped = Phaser.Math.Clamp(vol, 0, 1);
       const x = Phaser.Math.Linear(minX, maxX, clamped);
 
       handle.x = x;
-      this.sound.volume = clamped;          // volumen global del juego
-      this.registry.set("volume", clamped); // guardamos valor
+      this.sound.volume = clamped;
+      this.registry.set("volume", clamped);
       volumeText.setText(`Volume: ${Math.round(clamped * 100)}%`);
     };
 
-    // Inicializar el slider
+    // Inicializar slider
     applyVolume(initialVolume);
 
-    // Click en la barra → mover handle ahí
+    // Click en la barra
     track.on("pointerdown", (pointer) => {
       const x = Phaser.Math.Clamp(pointer.x, minX, maxX);
       const t = (x - minX) / (maxX - minX);
       applyVolume(t);
     });
 
-    // Click directo en el handle
+    // Click en el handle
     handle.on("pointerdown", (pointer) => {
       const x = Phaser.Math.Clamp(pointer.x, minX, maxX);
       const t = (x - minX) / (maxX - minX);
       applyVolume(t);
     });
 
-    // Arrastrar el handle
+    // Arrastrar handle
     this.input.on("drag", (pointer, gameObject, dragX) => {
       if (gameObject !== handle) return;
       const x = Phaser.Math.Clamp(dragX, minX, maxX);
@@ -127,17 +125,17 @@ export class OptionsMenu extends Phaser.Scene {
 
     const goBack = () => {
       if (this.from === "pause") {
-        // Venimos del PauseMenu: volvemos allí (Level1 sigue pausado)
-        this.scene.start("PauseMenu");
+        // Volvemos al PauseMenu SOBRE Level1 pausado
+        this.scene.launch("PauseMenu");
+        this.scene.bringToTop("PauseMenu");
+        this.scene.stop(); // cerramos OptionsMenu
       } else {
-        // Por defecto, volvemos al menú principal
+        // Venimos del menú principal
         this.scene.start("MainMenuScene");
       }
     };
 
     backText.on("pointerdown", goBack);
-
-    // ESC también vuelve al lugar correcto
     this.input.keyboard.on("keydown-ESC", goBack);
   }
 }
