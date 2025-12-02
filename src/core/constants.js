@@ -6,8 +6,8 @@
  */
 
 export const GAME_SIZE = {
-    WIDTH: 1024,    
-    HEIGHT: 768
+    WIDTH: 1536,    
+    HEIGHT: 832
 };
 
 export const PHYSICS = {
