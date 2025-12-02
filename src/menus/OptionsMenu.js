@@ -5,6 +5,15 @@ export class OptionsMenu extends Phaser.Scene {
     super({ key: "OptionsMenu" });
   }
 
+  /**
+   * data.from puede ser:
+   *  - "main"  → venimos del MainMenuScene
+   *  - "pause" → venimos del PauseMenu (Level1 está pausado)
+   */
+  init(data) {
+    this.from = data?.from || "main";
+  }
+
   create() {
     const cam = this.cameras.main;
     const centerX = cam.centerX;
@@ -28,20 +37,21 @@ export class OptionsMenu extends Phaser.Scene {
     const minX = centerX - trackWidth / 2;
     const maxX = centerX + trackWidth / 2;
 
-    // Pista (barra gris)
+    // Barra gris (pista)
     const track = this.add
       .rectangle(centerX, trackY, trackWidth, trackHeight, 0x555555)
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
 
-    // Volumen inicial: lo intento leer del registry, si no, uso el de Phaser (o 1)
+    // Volumen inicial: primero miro en el registry,
+    // si no hay, uso el volumen global actual de Phaser, o 1.
     let initialVolume = this.registry.get("volume");
     if (typeof initialVolume !== "number") {
       initialVolume =
         typeof this.sound.volume === "number" ? this.sound.volume : 1;
     }
 
-    // Texto del valor de volumen
+    // Texto que muestra el valor de volumen
     const volumeText = this.add
       .text(centerX, trackY - 40, "", {
         fontSize: "24px",
@@ -50,7 +60,7 @@ export class OptionsMenu extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    // Handle (circulito que se arrastra)
+    // Handle (circulito que arrastramos)
     const handle = this.add
       .circle(
         Phaser.Math.Linear(minX, maxX, initialVolume),
@@ -68,22 +78,22 @@ export class OptionsMenu extends Phaser.Scene {
       const x = Phaser.Math.Linear(minX, maxX, clamped);
 
       handle.x = x;
-      this.sound.volume = clamped;        // volumen global del juego
-      this.registry.set("volume", clamped); // guardamos valor global
+      this.sound.volume = clamped;          // volumen global del juego
+      this.registry.set("volume", clamped); // guardamos valor
       volumeText.setText(`Volume: ${Math.round(clamped * 100)}%`);
     };
 
-    // Inicializar estado visual
+    // Inicializar el slider
     applyVolume(initialVolume);
 
-    // Al hacer clic en la barra, mover el handle allí
+    // Click en la barra → mover handle ahí
     track.on("pointerdown", (pointer) => {
       const x = Phaser.Math.Clamp(pointer.x, minX, maxX);
       const t = (x - minX) / (maxX - minX);
       applyVolume(t);
     });
 
-    // Al hacer clic directamente en el handle
+    // Click directo en el handle
     handle.on("pointerdown", (pointer) => {
       const x = Phaser.Math.Clamp(pointer.x, minX, maxX);
       const t = (x - minX) / (maxX - minX);
@@ -98,7 +108,7 @@ export class OptionsMenu extends Phaser.Scene {
       applyVolume(t);
     });
 
-    // ---------- BOTÓN VOLVER ----------
+    // ---------- BOTÓN BACK ----------
     const backText = this.add
       .text(centerX, centerY + 200, "BACK", {
         fontSize: "32px",
@@ -108,16 +118,27 @@ export class OptionsMenu extends Phaser.Scene {
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
 
-    backText.on("pointerover", () => backText.setStyle({ color: "#f39c12" }));
-    backText.on("pointerout", () => backText.setStyle({ color: "#ffffff" }));
-    backText.on("pointerdown", () => {
-      this.scene.start("MainMenuScene");
-    });
+    backText.on("pointerover", () =>
+      backText.setStyle({ color: "#f39c12" })
+    );
+    backText.on("pointerout", () =>
+      backText.setStyle({ color: "#ffffff" })
+    );
 
-    // ESC también vuelve al menú
-    this.input.keyboard.on("keydown-ESC", () => {
-      this.scene.start("MainMenuScene");
-    });
+    const goBack = () => {
+      if (this.from === "pause") {
+        // Venimos del PauseMenu: volvemos allí (Level1 sigue pausado)
+        this.scene.start("PauseMenu");
+      } else {
+        // Por defecto, volvemos al menú principal
+        this.scene.start("MainMenuScene");
+      }
+    };
+
+    backText.on("pointerdown", goBack);
+
+    // ESC también vuelve al lugar correcto
+    this.input.keyboard.on("keydown-ESC", goBack);
   }
 }
 
