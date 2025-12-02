@@ -10,36 +10,68 @@ export class MainMenuScene extends Phaser.Scene {
     // this.load.image('title', 'assets/sprites/ui/title.png');
   }
 
-  create() {
-    const centerX = this.cameras.main.centerX;
-    const centerY = this.cameras.main.centerY;
+ create() {
+  const centerX = this.cameras.main.centerX;
+  const centerY = this.cameras.main.centerY;
 
-    // Fondo (si quieres usar un color sólido o imagen de fondo)
-    this.cameras.main.setBackgroundColor('#1d1d1d');
+  // Fondo
+  this.cameras.main.setBackgroundColor("#1d1d1d");
 
-    // Título del juego
-    this.add.text(centerX, centerY - 100, 'SUPER PANG', {
-      fontSize: '64px',
-      fill: '#ffffff',
-      fontFamily: 'Arial',
-    }).setOrigin(0.5);
+  // Título del juego
+  this.add.text(centerX, centerY - 100, "SUPER PANG", {
+    fontSize: "64px",
+    fill: "#ffffff",
+    fontFamily: "Arial",
+  }).setOrigin(0.5);
 
-    // Botón de "Jugar"
-    const playText = this.add.text(centerX, centerY + 50, 'JUGAR', {
-      fontSize: '32px',
-      fill: '#ffffff',
-      fontFamily: 'Arial',
-    }).setOrigin(0.5).setInteractive();
+  // ---------- BOTÓN JUGAR ----------
+  const playText = this.add.text(centerX, centerY + 20, "JUGAR", {
+    fontSize: "32px",
+    fill: "#ffffff",
+    fontFamily: "Arial",
+  }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
-    // Efecto al pasar el mouse
-    playText.on('pointerover', () => playText.setStyle({ fill: '#f39c12' }));
-    playText.on('pointerout', () => playText.setStyle({ fill: '#ffffff' }));
+  playText.on("pointerover", () => playText.setStyle({ fill: "#f39c12" }));
+  playText.on("pointerout",  () => playText.setStyle({ fill: "#ffffff" }));
+  playText.on("pointerdown", () => {
+    this.scene.start("SelectModeScene");
+  });
 
-    // Al hacer clic
-    playText.on('pointerdown', () => {
-      this.scene.start('SelectModeScene');
-    });
-  }
+  // ---------- BOTÓN OPCIONES ----------
+  const optionsText = this.add.text(centerX, centerY + 80, "OPTIONS", {
+    fontSize: "32px",
+    fill: "#ffffff",
+    fontFamily: "Arial",
+  }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+  optionsText.on("pointerover", () =>
+    optionsText.setStyle({ fill: "#f39c12" })
+  );
+  optionsText.on("pointerout", () =>
+    optionsText.setStyle({ fill: "#ffffff" })
+  );
+  optionsText.on("pointerdown", () => {
+    this.scene.start("OptionsMenu"); // ← escena que creamos antes
+  });
+
+  // ---------- BOTÓN SALIR ----------
+  const exitText = this.add.text(centerX, centerY + 140, "EXIT", {
+    fontSize: "32px",
+    fill: "#ffffff",
+    fontFamily: "Arial",
+  }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+  exitText.on("pointerover", () => exitText.setStyle({ fill: "#f39c12" }));
+  exitText.on("pointerout",  () => exitText.setStyle({ fill: "#ffffff" }));
+  exitText.on("pointerdown", () => {
+    // En navegador no se puede “cerrar” de verdad,
+    // pero podemos destruir el juego para simular que se cierra.
+    this.game.destroy(true);
+    // Opcional: mostrar mensaje
+    // alert("Gracias por jugar :)");
+  });
+}
+
 
   update(time, delta) {
     // Animaciones o lógica continua, si se desea
