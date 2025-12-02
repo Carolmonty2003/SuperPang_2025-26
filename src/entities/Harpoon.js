@@ -1,5 +1,53 @@
 // src/entities/Harpoon.js
 
+import { WEAPON } from '../core/constants.js';
+
+export class Harpoon extends Phaser.Physics.Arcade.Sprite 
+{
+    constructor(scene, x, y, texture = 'arponFijo') 
+    {
+        super(scene, x, y, texture);
+        
+        this.scene.add.existing(this);
+        this.scene.physics.world.enable(this);
+
+        this.setOrigin(0.5, 1); // El punto de anclaje es abajo
+        this.body.setAllowGravity(false);
+        this.body.setImmovable(true); // El arpón no se mueve si le chocan
+
+        // Estado
+        this.isExtending = true;
+    }
+
+    preUpdate(time, delta) 
+    {
+        // Nota: En Arcade Physics, escalar el body es delicado.
+        // Un truco común en Pang es mover el sprite hacia arriba o escalarlo.
+        // Aquí usaremos la escala Y para simular que crece.
+        
+        if (this.isExtending) {
+            this.displayHeight += (WEAPON.HARPOON_SPEED * delta) / 1000;
+            
+            // Actualizar el tamaño del cuerpo físico para que coincida con el sprite visual
+            this.body.setSize(this.width, this.displayHeight);
+            
+            // Re-centrar el body porque al escalar cambia el centro relativo
+            // (Arcade Physics a veces necesita ajustes manuales al cambiar tamaño dinámico)
+            // Una forma más simple: mover el body hacia arriba si no usamos setSize dinámico,
+            // pero para Pang queremos un "rayo".
+            
+            // Comprobar si toca el techo
+            if (this.y - this.displayHeight <= 0) { // Asumiendo techo en Y=0
+                this.destroy();
+            }
+            
+            // OPCIONAL: Si tienes un Tilemap Layer de techos, compruébalo en Level1 con overlap
+        }
+    }
+}
+
+
+/*
 export class Harpoon extends Phaser.Physics.Arcade.Sprite {
     constructor(_scene, _posX, _posY, _texture = 'arponFijo') {
         super(_scene, _posX, _posY, _texture);
@@ -130,3 +178,5 @@ export class Harpoon extends Phaser.Physics.Arcade.Sprite {
         }
     }
 }
+    
+*/

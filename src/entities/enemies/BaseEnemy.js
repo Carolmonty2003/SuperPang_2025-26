@@ -8,42 +8,23 @@ export class BaseEnemy extends Phaser.Physics.Arcade.Sprite
    * @param {number} _posY          - posición Y del sprite
    * @param {string} _texture       - key/spriteTag del spritesheet/atlas
    */
-    constructor(_scene,_posX,_posY,_texture)
-    { //instanciar el objeto
-        super(_scene,_posX,_posY,_texture);
-        // Añadir a la escena y habilitar físicas
-        //this.scene = _scene; //Es redundante. Lo hace super
-        _scene.add.existing(this);
-        _scene.physics.world.enable(this);
-        
-        // Física básica (ajusta a tu gusto)
-        //this.body.setAllowGravity(true);
-        //this.body.setCollideWorldBounds(false);
-        
-        //Cargamos las animaciones
-        this.anims.play("run_"+_texture,true);
-        // Estado inicial
-        this.direction = 1; // 1 → derecha, -1 → izquierda
-        this.body.setVelocityX(ENEMY.SPEED*this.direction);
-        
-        //Definimos colisiones
-        this.setColliders();
-    }
-
-    setColliders()
+    constructor(scene, x, y, texture) 
     {
-        if (this.scene.walls) { //Por si hemos instanciado al Jumper antes de crear la capa walls
-            this.scene.physics.add.collider
-            (
-                this,
-                this.scene.walls
-            )
-        }
+        super(scene, x, y, texture);
+        scene.add.existing(this);
+        scene.physics.world.enable(this);
+        
+        this.setCollideWorldBounds(true);
+        this.setBounce(1); // Rebote básico
     }
 
     howItpatrols()
     {
         return (this.body.blocked.left || this.body.blocked.right)    
+    }
+
+    takeDamage() {
+        this.destroy();
     }
 
     preUpdate(time,delta)

@@ -1,6 +1,46 @@
 // src/objects/bullet.js
 
-export class Bullet extends Phaser.Physics.Arcade.Sprite {
+import { WEAPON } from '../core/constants.js';
+
+export class Bullet extends Phaser.Physics.Arcade.Sprite 
+{
+    constructor(scene, x, y, texture = 'bullet') 
+    {
+        super(scene, x, y, texture);
+        
+        this.scene.add.existing(this);
+        this.scene.physics.world.enable(this);
+        
+        this.setScale(0.5);
+        this.body.setAllowGravity(false);
+        this.lifespan = WEAPON.BULLET_LIFESPAN;
+        this.bornTime = scene.time.now;
+    }
+
+    fire(angleDeg) 
+    {
+        const rad = Phaser.Math.DegToRad(angleDeg);
+        this.scene.physics.velocityFromRotation(rad, WEAPON.BULLET_SPEED, this.body.velocity);
+        this.setRotation(rad);
+    }
+
+    preUpdate(time, delta) 
+    {
+        super.preUpdate(time, delta);
+
+        if (time > this.bornTime + this.lifespan) {
+            this.destroy();
+        }
+        
+        // Destruir si sale de pantalla
+        if (!this.scene.cameras.main.worldView.contains(this.x, this.y)) {
+             this.destroy();
+        }
+    }
+}
+
+
+/*export class Bullet extends Phaser.Physics.Arcade.Sprite {
     /**
      * @param {Phaser.Scene} scene
      * @param {number} x
@@ -57,4 +97,4 @@ export class Bullet extends Phaser.Physics.Arcade.Sprite {
             this.destroy();
         }
     }
-}
+}*/

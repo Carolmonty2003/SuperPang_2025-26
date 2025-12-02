@@ -4,18 +4,19 @@
 //importamos la configuración del juego
 import { buildConfig } from "./core/config.js";
 //importamos los menus
-import MainMenuScene from "./menus/MainMenuScene.js";
-import SelectModeScene from "./menus/SelectModeScene.js";
-import OptionsMenu from "./menus/OptionsMenu.js";
-import PauseMenu from "./menus/PauseMenu.js";
+import { MainMenuScene } from './scenes/MainMenuScene.js';
+import { SelectModeScene } from './scenes/SelectModeScene.js';
+import { OptionsMenu } from './scenes/OptionsMenu.js';
+import { PauseMenu } from './scenes/PauseMenu.js';
+//import { Hud } from './scenes/Hud.js';
 
 //importamos las escenas
-import  Level1 from './scenes/Level1.js';
+import  {Level1} from './scenes/Level1.js';
 
 //import { level2 } from "./scenes/level2.js";
 //import { Hud } from "./scenes/hud.js";
 
-const game = new Phaser.Game
+const scenes = new Phaser.Game
 (
     buildConfig({
         scenes: [
@@ -29,3 +30,5 @@ const game = new Phaser.Game
         ],
     })
 );
+
+const game = new Phaser.Game(buildConfig({ scenes }));
