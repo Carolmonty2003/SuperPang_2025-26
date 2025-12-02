@@ -1,100 +1,56 @@
-// src/objects/bullet.js
+// src/entities/bullet.js (ajusta la ruta al tuyo)
 
-import { WEAPON } from '../core/constants.js';
-
-export class Bullet extends Phaser.Physics.Arcade.Sprite 
-{
-    constructor(scene, x, y, texture = 'bullet') 
-    {
-        super(scene, x, y, texture);
-        
-        this.scene.add.existing(this);
-        this.scene.physics.world.enable(this);
-        
-        this.setScale(0.5);
-        this.body.setAllowGravity(false);
-        this.lifespan = WEAPON.BULLET_LIFESPAN;
-        this.bornTime = scene.time.now;
-    }
-
-    fire(angleDeg) 
-    {
-        const rad = Phaser.Math.DegToRad(angleDeg);
-        this.scene.physics.velocityFromRotation(rad, WEAPON.BULLET_SPEED, this.body.velocity);
-        this.setRotation(rad);
-    }
-
-    preUpdate(time, delta) 
-    {
-        super.preUpdate(time, delta);
-
-        if (time > this.bornTime + this.lifespan) {
-            this.destroy();
-        }
-        
-        // Destruir si sale de pantalla
-        if (!this.scene.cameras.main.worldView.contains(this.x, this.y)) {
-             this.destroy();
-        }
-    }
-}
-
-
-/*export class Bullet extends Phaser.Physics.Arcade.Sprite {
-    /**
-     * @param {Phaser.Scene} scene
-     * @param {number} x
-     * @param {number} y
-     * @param {string} texture
-     */
-    constructor(scene, x, y, texture = "bullet") {
+export class Bullet extends Phaser.Physics.Arcade.Sprite {
+    constructor(scene, x, y, texture = 'bullet') {
         super(scene, x, y, texture);
 
-        this.scene = scene;
-        this.scene.add.existing(this);
-        this.scene.physics.world.enable(this);
-        this.setScale(0.05); // prueba 0.2, 0.15, etc.
+        scene.add.existing(this);
+        scene.physics.add.existing(this);
 
-        // Config básica
-        this.speed = 600;          // velocidad del disparo
-        this.lifespan = 1000;      // ms que vive la bala
+        this.setOrigin(0.5, 0.5);
+
+        // ===== TAMAÑO =====
+        
+        this.setScale(0.05);               // tamaño visual
+
+        // collider del MISMO tamaño que el sprite escalado
+        if (this.body && this.body.setSize) {
+            this.body.setAllowGravity(false);
+            this.body.setSize(
+                this.width,       
+                this.height,      
+                true                       
+            );
+        }
+
+        // vida muy simple
+        this.lifespan = 1000;               // ms
         this.birthTime = scene.time.now;
 
-        this.body.setAllowGravity(false);
+        // siempre mirando hacia arriba
+        this.setRotation(0);
     }
 
-    /**
-     * Lanza la bala en una dirección (en grados)
-     *  -90 = recto hacia arriba
-     *  0   = hacia la derecha
-     *  180 = hacia la izquierda
-     */
+    // dispara en ángulo, pero el sprite no se rota
     fire(angleDeg) {
+        const speed = 600;
         const rad = Phaser.Math.DegToRad(angleDeg);
-        const vx = Math.cos(rad) * this.speed;
-        const vy = Math.sin(rad) * this.speed;
+
+        const vx = Math.cos(rad) * speed;
+        const vy = Math.sin(rad) * speed;
 
         this.body.setVelocity(vx, vy);
+
+        // sprite estático arriba
+        this.setRotation(0);
     }
 
     preUpdate(time, delta) {
         super.preUpdate(time, delta);
 
-        // Destruir por tiempo
-        if (time - this.birthTime > this.lifespan) {
-            this.destroy();
-            return;
-        }
-
-        // Destruir si sale de los límites del mundo
-        const bounds = this.scene.physics.world.bounds;
-        if (
-            this.x < bounds.x - 50 ||
-            this.x > bounds.width + 50 ||
-            this.y < bounds.y - 50 ||
-            this.y > bounds.height + 50
-        ) {
+        // destruir por tiempo
+        if (time > this.birthTime + this.lifespan) {
             this.destroy();
         }
     }
-}*/
+}

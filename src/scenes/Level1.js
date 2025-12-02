@@ -26,7 +26,7 @@ export class Level1 extends Phaser.Scene {
     // --- 3. SPRITES DEL HÉROE ---
     this.load.setPath("assets/sprites/spritesheets/hero");
     this.load.spritesheet("player_walk", "player_walk.png", {
-      frameWidth: 435 / 4, // 4 frames
+      frameWidth: 436 / 4, // 4 frames
       frameHeight: 118,
     });
 
@@ -38,6 +38,8 @@ export class Level1 extends Phaser.Scene {
     // --- 4. ARPÓN CLÁSICO ---
     this.load.setPath("assets/sprites/static");
     this.load.image("arponFijo", "arponFijo.png");
+    this.load.image("bullet", "bullet.png");
+
   }
 
   create() {

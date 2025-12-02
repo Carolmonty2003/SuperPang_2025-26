@@ -10,10 +10,11 @@ export class Harpoon extends Phaser.Physics.Arcade.Sprite
         
         this.scene.add.existing(this);
         this.scene.physics.world.enable(this);
-
+        this.setScale(2);
         this.setOrigin(0.5, 1); // El punto de anclaje es abajo
         this.body.setAllowGravity(false);
         this.body.setImmovable(true); // El arpón no se mueve si le chocan
+       
 
         // Estado
         this.isExtending = true;
