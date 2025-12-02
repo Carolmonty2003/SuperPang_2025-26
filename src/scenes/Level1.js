@@ -90,6 +90,13 @@ class Level1 extends Phaser.Scene {
     //   collidingTileColor: new Phaser.Display.Color(243, 134, 48, 255),
     //   faceColor: new Phaser.Display.Color(40, 39, 37, 255),
     // });
+        // --- Atajo de pausa con ESC ---
+  // --- Atajo de pausa con ESC ---
+  this.input.keyboard.on("keydown-ESC", () => {
+    this.scene.launch("PauseMenu");
+    this.scene.pause();
+    this.scene.bringToTop("PauseMenu");
+  });
   }
 
   update(time, delta) {
