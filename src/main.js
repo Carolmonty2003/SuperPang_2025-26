@@ -12,6 +12,7 @@ import { PauseMenu } from './scenes/PauseMenu.js';
 
 //importamos las escenas
 import  {Level1} from './scenes/Level1.js';
+import Level_01 from "./scenes/Level_01.js";
 
 //import { level2 } from "./scenes/level2.js";
 //import { Hud } from "./scenes/hud.js";
@@ -26,6 +27,7 @@ const scenes = new Phaser.Game
             OptionsMenu,
             PauseMenu,
             Level1,
+            Level_01,
             /*, level2, Hud*/
         ],
     })

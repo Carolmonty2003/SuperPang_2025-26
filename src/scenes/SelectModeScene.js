@@ -80,9 +80,9 @@ export class SelectModeScene extends Phaser.Scene {
       tourTitle.setColor("#ffcc00");
     });
 
-    // Click TOUR -> por ahora arrancamos Level1 como modo historia
+    // Click TOUR -> ahora abre el nuevo Level_01
     tourZone.on("pointerdown", () => {
-      this.scene.start("Level1", { mode: "tour" });
+      this.scene.start("Level_01", { mode: "tour" });
     });
 
     // ---------- BOTÓN PANIC MODE ----------
@@ -134,8 +134,7 @@ export class SelectModeScene extends Phaser.Scene {
       panicTitle.setColor("#ff3366");
     });
 
-    // Click PANIC -> de momento también a Level1 pero marcando modo
-    // Luego podrás usar este flag para cambiar la lógica del nivel.
+    // Click PANIC -> sigue abriendo el Level1 clásico
     panicZone.on("pointerdown", () => {
       this.scene.start("Level1", { mode: "panic" });
     });

@@ -24,7 +24,7 @@ export class Bullet extends Phaser.Physics.Arcade.Sprite {
         }
 
         // vida muy simple
-        this.lifespan = 1000;               // ms
+        this.lifespan = 10000;               // ms
         this.birthTime = scene.time.now;
 
         // siempre mirando hacia arriba

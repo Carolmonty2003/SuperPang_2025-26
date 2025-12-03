@@ -1,91 +1,118 @@
 // src/scenes/Level1.js
 
 import { Hero } from '../entities/Hero.js';
-// import { Hero2 } from '../entities/Hero2.js'; // Descomenta si quieres usar el de la metralleta
+// import { Hero2 } from '../entities/Hero2.js'; // si quieres probar la metralleta
+import { BaseBall } from '../entities/enemies/BaseBalls.js';
 import { GAME_SIZE } from '../core/constants.js';
+import { Hud } from '../UI/HUD.js';
 
 export class Level1 extends Phaser.Scene {
   constructor() {
-    super({ key: "Level1" });
+    super({ key: 'Level1' });
   }
 
   preload() {
-    // --- 1. FONDO ---
-    this.load.setPath("assets/sprites/backgrounds");
-    this.load.spritesheet("backgrounds", "backgrounds.png", {
+    // --- FONDO Y TILEMAP ---
+    this.load.setPath('assets/sprites/backgrounds');
+   	this.load.spritesheet('backgrounds', 'backgrounds.png', {
       frameWidth: 256,
       frameHeight: 192,
     });
+    this.load.image('tileset_muros_img', 'tileset_muros.png');
 
-    // --- 2. TILEMAP / TILESET ---
-    this.load.image("tileset_muros_img", "tileset_muros.png");
+    this.load.setPath('assets/tiled/maps');
+    this.load.tilemapTiledJSON('map_marco', 'marcoLadrillos.json');
 
-    this.load.setPath("assets/tiled/maps");
-    this.load.tilemapTiledJSON("map_marco", "marcoLadrillos.json");
-
-    // --- 3. SPRITES DEL HÉROE ---
-    this.load.setPath("assets/sprites/spritesheets/hero");
-    this.load.spritesheet("player_walk", "player_walk.png", {
+    // --- SPRITES DEL HÉROE (los que usa Hero.js) ---
+    this.load.setPath('assets/sprites/spritesheets/hero');
+    this.load.spritesheet('player_walk', 'player_walk.png', {
       frameWidth: 436 / 4, // 4 frames
       frameHeight: 118,
     });
-
-    this.load.spritesheet("player_shoot", "player_shoot.png", {
+    this.load.spritesheet('player_shoot', 'player_shoot.png', {
       frameWidth: 191 / 2, // 2 frames
       frameHeight: 119,
     });
 
-    // --- 4. ARPÓN CLÁSICO ---
-    this.load.setPath("assets/sprites/static");
-    this.load.image("arponFijo", "arponFijo.png");
-    this.load.image("bullet", "bullet.png");
+    // --- ARMA Y ENEMIGOS ---
+    this.load.setPath('assets/sprites/static');
+    this.load.image('arponFijo', 'arponFijo.png');
+    this.load.image('ball', 'n_big.png');
 
+    // IMPORTANTE: cargar bala para HERO_WEAPON.GUN
+    this.load.image('bullet', 'bullet.png');
   }
 
   create() {
-    const BG_HEIGHT = GAME_SIZE.HEIGHT;
-
-    // --- FONDO ---
-    const bg = this.add.image(0, 0, "backgrounds", 0).setOrigin(0, 0);
-    bg.setDisplaySize(GAME_SIZE.WIDTH, BG_HEIGHT);
-
-    this.cameras.main.setBackgroundColor(0x000000);
-
-    // --- MAPA DE TILED ---
-    const map = this.make.tilemap({ key: "map_marco" });
-    const tileset = map.addTilesetImage("tileset_muros", "tileset_muros_img");
-
-    // Capa de muros (asegúrate que se llama igual en Tiled)
-    this.walls = map.createLayer("layer_walls", tileset, 0, 0);
+    // --- MAPA ---
+    const map = this.make.tilemap({ key: 'map_marco' });
+    const tileset = map.addTilesetImage('tileset_muros', 'tileset_muros_img');
+    this.walls = map.createLayer('layer_walls', tileset, 0, 0);
     this.walls.setCollisionByExclusion([-1]);
 
-    // Límites del mundo físico según el mapa
-    this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+    // Mundo físico solo hasta la altura del mapa (ej: 832)
+    this.physics.world.bounds.width = map.widthInPixels;
+    this.physics.world.bounds.height = map.heightInPixels;
+
+    // --- FONDO SOLO EN 0–alturaMapa ---
+    const bg = this.add.image(0, 0, 'backgrounds', 0).setOrigin(0, 0);
+    bg.setDisplaySize(GAME_SIZE.WIDTH, map.heightInPixels);
+    this.cameras.main.setBackgroundColor(0x000000);
+
+    // --- GRUPOS ---
+    // this.ballsGroup = this.add.group({ runChildUpdate: true });  <-- NO queremos pelotas ahora
+    this.bullets = this.add.group({ runChildUpdate: true }); // ★ grupo de balas PARA LA METRALLETA
+
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    // ★ NUEVO: destruir balas al chocar con la layer de paredes
+    this.physics.add.collider(this.bullets, this.walls, (bullet, tile) => {
+      if (bullet && bullet.active) bullet.destroy();
+    });
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     // --- HÉROE ---
-    // X: mitad del mapa, Y: mitad de altura -> cae hasta el suelo y ves colisiones
     const startX = map.widthInPixels / 2;
-    const startY = map.heightInPixels / 2;
+    const startY = map.heightInPixels - 64;
 
-    this.hero = new Hero(this, startX, startY, "player_walk");
-    // this.hero = new Hero2(this, startX, startY, "player_walk");
-
-    // Colisión del héroe con los muros
+    // MUY IMPORTANTE: textura 'player_walk', que es la que espera Hero.js
+    this.hero = new Hero(this, startX, startY, 'player_walk');
     this.physics.add.collider(this.hero, this.walls);
 
-    // El héroe arranca en idle
-    this.hero.play("idle");
+    // --- BOLA INICIAL ---
+   
+    // --- HUD EN LA BANDA INFERIOR ---
+    this.hud = new Hud(this, {
+      uiTop: map.heightInPixels, // empieza justo debajo del mapa
+      mode: 'HARPOON',
+    });
 
     // --- PAUSA CON ESC ---
-    this.input.keyboard.on("keydown-ESC", () => {
-      this.scene.launch("PauseMenu");
+    this.input.keyboard.on('keydown-ESC', () => {
+      this.scene.launch('PauseMenu');
       this.scene.pause();
-      this.scene.bringToTop("PauseMenu");
+      this.scene.bringToTop('PauseMenu');
     });
   }
 
-  update(time, delta) {
-    // El movimiento + disparo se controla desde HeroBase.preUpdate()
+  update() {
+    // Colisión Arpón vs bolas
+    // Aquí podrás añadir overlaps bala-vs-algo cuando quieras usarlo
+  }
+
+  onWeaponHitBall(weapon, ball) {
+    weapon.destroy();
+
+    if (ball.active) {
+      ball.takeDamage();
+    }
+  }
+
+  onHeroHitBall(_hero, _ball)
+  {
+      // Usamos SIEMPRE la instancia que tenemos guardada en la escena
+      if (this.hero && typeof this.hero.hit === 'function') {
+          this.hero.hit();
+      }
   }
 }
 
