@@ -10,40 +10,8 @@ export class Level1 extends Phaser.Scene {
   }
 
   preload() {
-    // --- 1. FONDO ---
-    this.load.setPath("assets/sprites/backgrounds");
-    this.load.spritesheet("backgrounds", "backgrounds.png", {
-      frameWidth: 256,
-      frameHeight: 192,
-    });
 
-    // --- 2. TILEMAP / TILESET ---
-    this.load.image("tileset_muros_img", "tileset_muros.png");
 
-    this.load.setPath("assets/tiled/maps");
-    this.load.tilemapTiledJSON("map_marco", "marcoLadrillos.json");
-
-    // --- 3. SPRITES DEL HÉROE ---
-    this.load.setPath("assets/sprites/spritesheets/hero");
-    this.load.spritesheet("player_walk", "player_walk.png", {
-      frameWidth: 436 / 4, // 4 frames
-      frameHeight: 118,
-    });
-
-    this.load.spritesheet("player_shoot", "player_shoot.png", {
-      frameWidth: 191 / 2, // 2 frames
-      frameHeight: 119,
-    });
-
-    // --- 4. ARPÓN + BALAS ---
-    this.load.setPath("assets/sprites/static");
-    this.load.image("arponFijo", "arponFijo.png");
-    this.load.image("bullet", "bullet.png");
-
-    // --- 5. BOLAS ---
-    // ⚠️ Ajusta la ruta/nombre de archivo a tus assets reales de bola
-    this.load.setPath("assets/sprites/balls");
-    //this.load.image("ball", "ball.png");
 
      // --- 1. FONDO ---
     this.load.setPath("assets/sprites/backgrounds");
