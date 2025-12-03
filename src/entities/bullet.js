@@ -13,7 +13,7 @@ export class Bullet extends Phaser.Physics.Arcade.Sprite {
         
         this.setScale(0.05);               // tamaño visual
 
-        // collider del MISMO tamaño que el sprite escalado
+      
         if (this.body && this.body.setSize) {
             this.body.setAllowGravity(false);
             this.body.setSize(
@@ -23,15 +23,15 @@ export class Bullet extends Phaser.Physics.Arcade.Sprite {
             );
         }
 
-        // vida muy simple
-        this.lifespan = 10000;               // ms
+      
+        this.lifespan = 10000;               
         this.birthTime = scene.time.now;
 
-        // siempre mirando hacia arriba
+    
         this.setRotation(0);
     }
 
-    // dispara en ángulo, pero el sprite no se rota
+ 
     fire(angleDeg) {
         const speed = 600;
         const rad = Phaser.Math.DegToRad(angleDeg);
@@ -41,14 +41,14 @@ export class Bullet extends Phaser.Physics.Arcade.Sprite {
 
         this.body.setVelocity(vx, vy);
 
-        // sprite estático arriba
+      
         this.setRotation(0);
     }
 
     preUpdate(time, delta) {
         super.preUpdate(time, delta);
 
-        // destruir por tiempo
+     
         if (time > this.birthTime + this.lifespan) {
             this.destroy();
         }

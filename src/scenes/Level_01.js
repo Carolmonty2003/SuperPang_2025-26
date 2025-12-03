@@ -2,6 +2,7 @@
 
 import { Hero } from "../entities/Hero.js";
 import { GAME_SIZE } from "../core/constants.js";
+import { Hud } from "../UI/HUD.js";
 
 export class Level_01 extends Phaser.Scene {
   constructor() {
@@ -20,8 +21,7 @@ export class Level_01 extends Phaser.Scene {
     this.load.image("tileset_muros_img", "tileset_muros.png");
 
     // --- 2. TILESET PLATAFORMAS ---
-    // ⚠️ IMPORTANTE: aquí es donde Phaser está dando el 404
-    // Asegúrate de que tileset_platform.png está REALMENTE en esta carpeta:
+    
     //   assets/tiled/maps/tilesets/tileset_platform.png
     this.load.setPath("assets/tiled/maps/tilesets");
     this.load.image("tileset_platform_img", "tileset_platform.png");
@@ -52,6 +52,8 @@ export class Level_01 extends Phaser.Scene {
     const BG_HEIGHT = GAME_SIZE.HEIGHT;
 
     // --- FONDO ---
+    // La imagen ocupa todo el alto del juego,
+    // pero la parte jugable será la del tilemap (por encima del HUD).
     const bg = this.add.image(0, 0, "backgrounds", 3).setOrigin(0, 0);
     bg.setDisplaySize(GAME_SIZE.WIDTH, BG_HEIGHT);
     this.cameras.main.setBackgroundColor(0x000000);
@@ -85,6 +87,23 @@ export class Level_01 extends Phaser.Scene {
       map.heightInPixels
     );
 
+    // --- GRUPO DE BALAS (igual que en Level1) ---
+    this.bullets = this.add.group({ runChildUpdate: true });
+
+    // Balas que se destruyen al chocar con las PAREDES
+    this.physics.add.collider(this.bullets, this.walls, (bullet, tile) => {
+      if (bullet && bullet.active) bullet.destroy();
+    });
+
+    // Balas que rompen PLATAFORMAS
+    this.physics.add.collider(
+      this.bullets,
+      this.platforms,
+      this.onWeaponHitsPlatform,
+      null,
+      this
+    );
+
     // --- HÉROE ---
     const startX = map.widthInPixels / 2;
     const startY = map.heightInPixels - 64;
@@ -110,6 +129,12 @@ export class Level_01 extends Phaser.Scene {
 
     this.hero.play("idle");
 
+    // --- HUD EN LA BANDA INFERIOR (igual que Level1) ---
+    this.hud = new Hud(this, {
+      uiTop: map.heightInPixels, // empieza justo debajo del mapa
+      mode: "HARPOON",
+    });
+
     // --- PAUSA CON ESC ---
     this.input.keyboard.on("keydown-ESC", () => {
       this.scene.launch("PauseMenu");
@@ -120,6 +145,36 @@ export class Level_01 extends Phaser.Scene {
 
   update(time, delta) {
     // De momento nada, HeroBase ya se encarga del movimiento
+
+    // Arpón rompiendo PLATAFORMAS
+    if (this.hero.activeHarpoon && this.hero.activeHarpoon.active) {
+      this.physics.overlap(
+        this.hero.activeHarpoon,
+        this.platforms,
+        this.onWeaponHitsPlatform,
+        null,
+        this
+      );
+    }
+  }
+
+  /**
+   * Callback común para cuando un arma (arpón o bala) golpea una plataforma.
+   * weapon: Sprite (Harpoon o Bullet)
+   * tile:   Phaser.Tilemaps.Tile
+   */
+  onWeaponHitsPlatform(weapon, tile) {
+    if (tile && tile.tilemapLayer) {
+      tile.tilemapLayer.removeTileAt(tile.x, tile.y);
+    }
+
+    if (weapon && weapon.active && weapon.destroy) {
+      weapon.destroy();
+    }
+
+    // Aquí en el futuro podrás hacer:
+    //  - lanzar partículas
+    //  - spawnear drops (items, power-ups, etc.)
   }
 }
 

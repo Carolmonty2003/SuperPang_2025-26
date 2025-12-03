@@ -1,7 +1,7 @@
 // src/scenes/Level1.js
 
 import { Hero } from '../entities/Hero.js';
-// import { Hero2 } from '../entities/Hero2.js'; // si quieres probar la metralleta
+
 import { BaseBall } from '../entities/enemies/BaseBalls.js';
 import { GAME_SIZE } from '../core/constants.js';
 import { Hud } from '../UI/HUD.js';
@@ -39,7 +39,6 @@ export class Level1 extends Phaser.Scene {
     this.load.image('arponFijo', 'arponFijo.png');
     this.load.image('ball', 'n_big.png');
 
-    // IMPORTANTE: cargar bala para HERO_WEAPON.GUN
     this.load.image('bullet', 'bullet.png');
   }
 
@@ -61,20 +60,17 @@ export class Level1 extends Phaser.Scene {
 
     // --- GRUPOS ---
     // this.ballsGroup = this.add.group({ runChildUpdate: true });  <-- NO queremos pelotas ahora
-    this.bullets = this.add.group({ runChildUpdate: true }); // ★ grupo de balas PARA LA METRALLETA
-
-    // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    // ★ NUEVO: destruir balas al chocar con la layer de paredes
+    this.bullets = this.add.group({ runChildUpdate: true }); 
+   
     this.physics.add.collider(this.bullets, this.walls, (bullet, tile) => {
       if (bullet && bullet.active) bullet.destroy();
     });
-    // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
+    
     // --- HÉROE ---
     const startX = map.widthInPixels / 2;
     const startY = map.heightInPixels - 64;
 
-    // MUY IMPORTANTE: textura 'player_walk', que es la que espera Hero.js
+    
     this.hero = new Hero(this, startX, startY, 'player_walk');
     this.physics.add.collider(this.hero, this.walls);
 
