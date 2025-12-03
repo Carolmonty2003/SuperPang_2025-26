@@ -2,7 +2,7 @@ import { BaseEnemy } from './BaseEnemy.js';
 import { ENEMY } from '../../core/constants.js';
 import { EVENTS } from '../../core/events.js';
 
-export class BaseBall extends BaseEnemy 
+export class BaseBalls extends BaseEnemy 
 {
     constructor(scene, x, y, texture, size = 3, direction = 1) 
     {
@@ -22,6 +22,20 @@ export class BaseBall extends BaseEnemy
         this.body.setVelocityX(ENEMY.SPEED * direction);
     }
 
+    create(){
+        // Grupo de bolas
+    this.ballsGroup = this.physics.add.group();
+
+    // Ejemplo de bola inicial
+    const initialBallX = map.widthInPixels * 0.25;
+    const initialBallY = 100;
+
+    // OJO: aquí el tercer parámetro es la key de textura que has cargado arriba
+    const firstBall = new BaseBalls(this, initialBallX, initialBallY, "sp_big", 3, 1);
+    this.ballsGroup.add(firstBall);
+ 
+    }
+
     takeDamage() 
     {
         this.scene.game.events.emit(EVENTS.enemy.BALL_DESTROYED, { x: this.x, y: this.y, size: this.size });
@@ -39,10 +53,10 @@ export class BaseBall extends BaseEnemy
         const texture = this.texture.key;
         
         // Usamos BaseBall recursivamente (luego podrás cambiarlo por subclases)
-        const ball1 = new BaseBall(this.scene, this.x, this.y, texture, newSize, -1);
+        const ball1 = new BaseBalls(this.scene, this.x, this.y, texture, newSize, -1);
         ball1.body.setVelocityY(-300);
 
-        const ball2 = new BaseBall(this.scene, this.x, this.y, texture, newSize, 1);
+        const ball2 = new BaseBalls(this.scene, this.x, this.y, texture, newSize, 1);
         ball2.body.setVelocityY(-300);
         
         if (this.scene.ballsGroup) {
