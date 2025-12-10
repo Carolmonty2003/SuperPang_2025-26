@@ -58,7 +58,7 @@ export class Hero extends HeroBase
         if (!anims.exists('run')) {
             anims.create({
                 key: 'run',
-                frames: anims.generateFrameNumbers('player_walk', { start: 0, end: 3 }),
+                frames: anims.generateFrameNumbers('player_walk', { start: 0, end: 2 }),
                 frameRate: 12,
                 repeat: -1,
             });

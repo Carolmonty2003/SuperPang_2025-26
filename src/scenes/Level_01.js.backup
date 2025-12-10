@@ -4,7 +4,7 @@ import { Hero } from "../entities/Hero.js";
 import { GAME_SIZE } from "../core/constants.js";
 import { Hud } from "../UI/HUD.js";
 import { Platform } from "../objects/Platform.js";
-import { HugeBall } from "../entities/enemies/BaseBalls.js";
+import { BaseBall } from "../entities/enemies/BaseBalls.js";
 
 export class Level_01 extends Phaser.Scene {
   constructor() {
@@ -49,19 +49,18 @@ export class Level_01 extends Phaser.Scene {
     this.load.image("bullet", "bullet.png");
 
     // --- 6. PELOTAS ---
-    this.load.setPath("assets/sprites/static");
-    this.load.image("n_huge", "n_huge.png");
-    this.load.image("n_big", "n_big.png");
-    this.load.image("n_mid", "n_mid.png");
-    this.load.image("n_small", "n_small.png");
-    this.load.image("n_tiny1", "n_tiny1.png");
-    this.load.image("n_tiny2", "n_tiny2.png");
+    this.load.setPath("assets/sprites/spritesheets/Balls");
+    this.load.image("ball_big", "sp_big.png");
+    this.load.image("ball_mid", "sp_mid.png");
+    this.load.image("ball_small", "sp_small.png");
   }
 
   create() {
     const BG_HEIGHT = GAME_SIZE.HEIGHT;
 
     // --- FONDO ---
+    // La imagen ocupa todo el alto del juego,
+    // pero la parte jugable será la del tilemap (por encima del HUD).
     const bg = this.add.image(0, 0, "backgrounds", 3).setOrigin(0, 0);
     bg.setDisplaySize(GAME_SIZE.WIDTH, BG_HEIGHT);
     this.cameras.main.setBackgroundColor(0x000000);
@@ -69,6 +68,9 @@ export class Level_01 extends Phaser.Scene {
     // --- MAPA DE TILED ---
     const map = this.make.tilemap({ key: "map_level_01" });
 
+    // Estos nombres tienen que coincidir con Tiled:
+    //  - tileset_muros
+    //  - tileset_platform
     const tilesetMuros = map.addTilesetImage(
       "tileset_muros",
       "tileset_muros_img"
@@ -83,10 +85,6 @@ export class Level_01 extends Phaser.Scene {
 
     this.walls.setCollisionByExclusion([-1]);
     this.platforms.setCollisionByExclusion([-1, 0]);
-    
-    // Configurar bounce en las layers para rebote perfecto
-    this.walls.setTileIndexCallback(-1, null, this);
-    this.platforms.setTileIndexCallback(-1, null, this);
 
     // Crear instancias de Platform para cada tile de plataforma
     this.createPlatformObjects();
@@ -99,7 +97,7 @@ export class Level_01 extends Phaser.Scene {
       map.heightInPixels
     );
 
-    // --- GRUPO DE BALAS ---
+    // --- GRUPO DE BALAS (igual que en Level1) ---
     this.bullets = this.add.group({ runChildUpdate: true });
 
     // --- GRUPO DE PELOTAS ---
@@ -123,25 +121,19 @@ export class Level_01 extends Phaser.Scene {
     const startX = map.widthInPixels / 2;
     const startY = map.heightInPixels - 64;
 
+    // Hero usa player_walk en su createAnimations
     this.hero = new Hero(this, startX, startY, "player_walk");
 
     this.physics.add.collider(this.hero, this.walls);
     this.physics.add.collider(this.hero, this.platforms);
 
-    // --- COLISIONES DE LAS PELOTAS ---
-    // Las pelotas rebotan contra paredes y plataformas
-    this.physics.add.collider(this.ballsGroup, this.walls, this.onBallHitWall, null, this);
-    this.physics.add.collider(this.ballsGroup, this.platforms, this.onBallHitPlatform, null, this);
-    
-    // SIN colisión héroe-pelota por ahora
-
-    // --- ANIMACIÓN IDLE ---
+    // --- ANIMACIÓN IDLE (para que no pete al hacer this.hero.play("idle")) ---
     if (!this.anims.exists("idle")) {
       this.anims.create({
         key: "idle",
         frames: this.anims.generateFrameNumbers("player_walk", {
           start: 0,
-          end: 2,
+          end: 3,
         }),
         frameRate: 6,
         repeat: -1,
@@ -153,9 +145,32 @@ export class Level_01 extends Phaser.Scene {
     // --- CREAR PELOTA INICIAL ---
     this.createBall();
 
-    // --- HUD ---
+    // --- COLISIONES CON PELOTAS ---
+    // Pelotas rebotan en paredes y plataformas
+    this.physics.add.collider(this.ballsGroup, this.walls);
+    this.physics.add.collider(this.ballsGroup, this.platforms);
+
+    // Pelotas hacen daño al héroe
+    this.physics.add.overlap(
+      this.hero,
+      this.ballsGroup,
+      this.onHeroBallCollision,
+      null,
+      this
+    );
+
+    // Arpón destruye pelotas
+    this.physics.add.overlap(
+      this.ballsGroup,
+      this.platforms,
+      null,
+      null,
+      this
+    );
+
+    // --- HUD EN LA BANDA INFERIOR (igual que Level1) ---
     this.hud = new Hud(this, {
-      uiTop: map.heightInPixels,
+      uiTop: map.heightInPixels, // empieza justo debajo del mapa
       mode: "HARPOON",
     });
 
@@ -167,104 +182,9 @@ export class Level_01 extends Phaser.Scene {
     });
   }
 
-  /**
-   * Crea instancias de Platform para cada tile de plataforma en el layer
-   */
-  createPlatformObjects() {
-    this.platformObjects.clear();
-    
-    this.platforms.forEachTile((tile) => {
-      if (tile.index > 0) {
-        const key = `${tile.x}_${tile.y}`;
-        const platform = new Platform(this, tile);
-        this.platformObjects.set(key, platform);
-      }
-    });
-    
-    console.log(`Plataformas creadas: ${this.platformObjects.size}`);
-  }
-
-  /**
-   * Crear una pelota inicial en el nivel
-   */
-  createBall() {
-    // Usar directamente el mapa que ya tenemos en create()
-    const startX = this.walls.width / 2;
-    const startY = 200;
-
-    console.log(`Creando pelota en x:${startX}, y:${startY}`);
-
-    // Crear una HugeBall (dirección 1 = derecha)
-    const ball = new HugeBall(this, startX, startY, 1);
-    this.ballsGroup.add(ball);
-    
-    // Darle un pequeño impulso inicial hacia abajo para que empiece a moverse
-    ball.body.setVelocityY(50);
-    
-    console.log(`Pelota creada:`, ball);
-    console.log(`Pelota visible:`, ball.visible);
-    console.log(`Pelota posición:`, ball.x, ball.y);
-    console.log(`Pelotas en grupo:`, this.ballsGroup.getChildren().length);
-  }
-
-  /**
-   * Callback cuando la pelota golpea un muro
-   */
-  onBallHitWall(ball, tile) {
-    if (!ball || !ball.body) return;
-    
-    // Rebote en paredes laterales
-    if (ball.body.touching.left || ball.body.touching.right) {
-      ball.body.setVelocityX(-ball.body.velocity.x);
-    }
-    
-    // Rebote en suelo/techo - conservar velocidad previa al impacto
-    if (ball.body.touching.down) {
-      // Aplicar velocidad hacia arriba basada en la velocidad previa
-      const bounceVelocity = Math.abs(ball.body.velocity.y) * 0.95;
-      ball.body.setVelocityY(-Math.max(bounceVelocity, 200));
-    } else if (ball.body.touching.up) {
-      ball.body.setVelocityY(-ball.body.velocity.y);
-    }
-  }
-
-  /**
-   * Callback cuando la pelota golpea una plataforma
-   */
-  onBallHitPlatform(ball, tile) {
-    if (!ball || !ball.body) return;
-    
-    // Rebote en plataformas laterales
-    if (ball.body.touching.left || ball.body.touching.right) {
-      ball.body.setVelocityX(-ball.body.velocity.x);
-    }
-    
-    // Rebote desde abajo o arriba de la plataforma
-    if (ball.body.touching.down) {
-      // Aplicar velocidad hacia arriba basada en la velocidad previa
-      const bounceVelocity = Math.abs(ball.body.velocity.y) * 0.95;
-      ball.body.setVelocityY(-Math.max(bounceVelocity, 200));
-    } else if (ball.body.touching.up) {
-      ball.body.setVelocityY(-ball.body.velocity.y);
-    }
-  }
-
-  /**
-   * Callback cuando el héroe toca una pelota
-   */
-  onHeroBallCollision(hero, ball) {
-    if (hero && hero.active && ball && ball.active) {
-      console.log("¡Héroe tocado por pelota!");
-      
-      if (hero.takeDamage) {
-        hero.takeDamage();
-      }
-      
-      this.game.events.emit('HERO_DAMAGED');
-    }
-  }
-
   update(time, delta) {
+    // De momento nada, HeroBase ya se encarga del movimiento
+
     // Arpón rompiendo PLATAFORMAS
     if (this.hero.activeHarpoon && this.hero.activeHarpoon.active) {
       this.physics.overlap(
@@ -296,40 +216,103 @@ export class Level_01 extends Phaser.Scene {
   }
 
   /**
-   * Callback común para cuando un arma golpea una plataforma
-   */
-  onWeaponHitsPlatform(weapon, tile) {
-    const key = `${tile.x}_${tile.y}`;
-    const platform = this.platformObjects.get(key);
-    
-    if (platform) {
-      platform.break(weapon);
-      this.platformObjects.delete(key);
+   * Callback cuando el héroe toca una pelota
       console.log(`Plataforma destruida en (${tile.x}, ${tile.y}). Restantes: ${this.platformObjects.size}`);
-    }
-    
-    // Destruir el arma (bala o arpón) después de romper la plataforma
-    if (weapon && weapon.active && weapon.destroy) {
-      weapon.destroy();
     }
   }
 
   /**
-   * Callback cuando un arma golpea una pelota
+   * Callback cuando un arma (arpón o bala) golpea una pelota
    */
   onWeaponHitsBall(weapon, ball) {
     if (weapon && weapon.active && ball && ball.active) {
-      // Destruir el arma (arpón o bala)
-      if (weapon.destroy) {
+      // Destruir el arma si es arpón
+      if (weapon.destroy && weapon.texture.key === 'arponFijo') {
         weapon.destroy();
       }
       
-      // Dañar la pelota
+      // Destruir la pelota (que se divide si es grande)
       if (ball.takeDamage) {
         ball.takeDamage();
       }
     }
   }
-}
+}     console.log("¡Héroe tocado por pelota!");
+      
+      // Quitar vida al héroe
+      if (hero.takeDamage) {
+        hero.takeDamage();
+      }
+      
+      // Emitir evento para actualizar UI
+      this.game.events.emit('HERO_DAMAGED');
+    
+  
+
+  update(time, delta) {.on("keydown-ESC", () => {
+      this.scene.launch("PauseMenu");
+      this.scene.pause();
+      this.scene.bringToTop("PauseMenu");
+    });
+  }
+
+  /**
+   * Crea instancias de Platform para cada tile de plataforma en el layer
+   */
+  createPlatformObjects() {
+    this.platformObjects.clear();
+    
+    // Recorrer todos los tiles del layer de plataformas
+    this.platforms.forEachTile((tile) => {
+      // Solo procesar tiles que tengan un index válido (no vacíos)
+      if (tile.index > 0) {
+        // Crear una clave única para este tile
+        const key = `${tile.x}_${tile.y}`;
+        
+        // Crear una instancia de Platform y guardarla
+        const platform = new Platform(this, tile);
+        this.platformObjects.set(key, platform);
+      }
+    });
+    
+    console.log(`Plataformas creadas: ${this.platformObjects.size}`);
+  }
+
+  update(time, delta) {
+    // De momento nada, HeroBase ya se encarga del movimiento
+
+    // Arpón rompiendo PLATAFORMAS
+    if (this.hero.activeHarpoon && this.hero.activeHarpoon.active) {
+      this.physics.overlap(
+        this.hero.activeHarpoon,
+        this.platforms,
+        this.onWeaponHitsPlatform,
+        null,
+        this
+      );
+    }
+  }
+
+  /**
+   * Callback común para cuando un arma (arpón o bala) golpea una plataforma.
+   * weapon: Sprite (Harpoon o Bullet)
+   * tile:   Phaser.Tilemaps.Tile
+   */
+  onWeaponHitsPlatform(weapon, tile) {
+    // Buscar el objeto Platform correspondiente a este tile
+    const key = `${tile.x}_${tile.y}`;
+    const platform = this.platformObjects.get(key);
+    
+    if (platform) {
+      // Usar el método break() de Platform
+      platform.break(weapon);
+      
+      // Eliminar de nuestro Map
+      this.platformObjects.delete(key);
+      
+      console.log(`Plataforma destruida en (${tile.x}, ${tile.y}). Restantes: ${this.platformObjects.size}`);
+    }
+  }
+
 
 export default Level_01;
