@@ -7,59 +7,14 @@ export class Harpoon extends Phaser.Physics.Arcade.Sprite
     constructor(scene, x, y, texture = 'arponFijo') 
     {
         super(scene, x, y, texture);
-        
-        this.scene.add.existing(this);
-        this.scene.physics.world.enable(this);
-        this.setScale(2);
-        this.setOrigin(0.5, 1); // El punto de anclaje es abajo
-        this.body.setAllowGravity(false);
-        this.body.setImmovable(true); // El arpón no se mueve si le chocan
-       
 
-        // Estado
-        this.isExtending = true;
-    }
-
-    preUpdate(time, delta) 
-    {
-        // Nota: En Arcade Physics, escalar el body es delicado.
-        // Un truco común en Pang es mover el sprite hacia arriba o escalarlo.
-        // Aquí usaremos la escala Y para simular que crece.
-        
-        if (this.isExtending) {
-            this.displayHeight += (WEAPON.HARPOON_SPEED * delta) / 1000;
-            
-            // Actualizar el tamaño del cuerpo físico para que coincida con el sprite visual
-            this.body.setSize(this.width, this.displayHeight);
-            
-            // Re-centrar el body porque al escalar cambia el centro relativo
-            // (Arcade Physics a veces necesita ajustes manuales al cambiar tamaño dinámico)
-            // Una forma más simple: mover el body hacia arriba si no usamos setSize dinámico,
-            // pero para Pang queremos un "rayo".
-            
-            // Comprobar si toca el techo
-            if (this.y - this.displayHeight <= 0) { // Asumiendo techo en Y=0
-                this.destroy();
-            }
-            
-            // OPCIONAL: Si tienes un Tilemap Layer de techos, compruébalo en Level1 con overlap
-        }
-    }
-}
-
-
-/*
-export class Harpoon extends Phaser.Physics.Arcade.Sprite {
-    constructor(_scene, _posX, _posY, _texture = 'arponFijo') {
-        super(_scene, _posX, _posY, _texture);
-
-        this.scene = _scene;
+        this.scene = scene;
         this.scene.add.existing(this);
         this.scene.physics.world.enable(this);
 
         // Posicionar justo donde se pidió (debajo del player) y fijar baseY
-        this.baseY = Math.round(_posY);
-        this.setPosition(_posX, this.baseY);
+        this.baseY = Math.round(y);
+        this.setPosition(x, this.baseY);
 
         // Origen en la base (centro-abajo). Al cambiar displayHeight la base permanece fija.
         this.setOrigin(0.5, 1);
@@ -74,7 +29,7 @@ export class Harpoon extends Phaser.Physics.Arcade.Sprite {
 
         // Propiedades de extensión
         this.isExtending = true;
-        this.EXTENSION_SPEED = 900;
+        this.EXTENSION_SPEED = WEAPON.HARPOON_SPEED || 900;
 
         this.MAX_HEIGHT = this.scene.map ? this.scene.map.heightInPixels : (this.scene.cameras.main.height || 800);
         this.STOP_Y = 2;
@@ -87,15 +42,10 @@ export class Harpoon extends Phaser.Physics.Arcade.Sprite {
         this.body.setAllowGravity(false);
         this.body.setImmovable(true);
 
-        // No uses setOffset aquí: body se posicionará manualmente en preUpdate()
+        // Body inicial pequeño
         const initialBodyW = Math.max(2, Math.round(this.displayWidth * this.COLLIDER_WIDTH_FACTOR));
         const initialBodyH = Math.max(1, Math.round(this.displayHeight));
         this.body.setSize(initialBodyW, initialBodyH);
-    }
-
-    // No añadir collider con walls para que el arpón solo termine al tocar techo.
-    setColliders() {
-        // Intencionalmente vacío
     }
 
     onReachedCeiling() {
@@ -125,7 +75,8 @@ export class Harpoon extends Phaser.Physics.Arcade.Sprite {
         this.destroy();
     }
 
-    preUpdate(time, delta) {
+    preUpdate(time, delta) 
+    {
         super.preUpdate(time, delta);
 
         if (this.isExtending) {
@@ -153,9 +104,9 @@ export class Harpoon extends Phaser.Physics.Arcade.Sprite {
 
                 // Centrar el collider horizontalmente y aplicar ajuste fino
                 const bx = Math.round(spriteLeft + (this.displayWidth - bodyW) / 2 + this.COLLIDER_OFFSET_X);
-                const by = Math.round(spriteTop); // top del sprite (origen y = 1 hace que y = base)
+                const by = Math.round(spriteTop);
 
-                // Asignar al body (y a position para consistencia en Arcade)
+                // Asignar al body
                 this.body.x = bx;
                 this.body.y = by;
                 if (this.body.position) {
@@ -163,7 +114,7 @@ export class Harpoon extends Phaser.Physics.Arcade.Sprite {
                     this.body.position.y = by;
                 }
 
-                // (opcional) actualizar center para usos internos
+                // Actualizar center para usos internos
                 if (this.body.center) {
                     this.body.center.x = bx + bodyW / 2;
                     this.body.center.y = by + bodyH / 2;
@@ -179,5 +130,3 @@ export class Harpoon extends Phaser.Physics.Arcade.Sprite {
         }
     }
 }
-    
-*/

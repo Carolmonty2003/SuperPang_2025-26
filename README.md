@@ -12,4 +12,4 @@ HAY DOS TIPOS DE DISPAROS:
 - En el modo panic, los diferentes tipos de disparo:
     Arpon = tecla 1
     Machine gun = tecla 2
-(se mostrara el modo de disparo en el HUD, se tiene que cambiar al icono i pulirlo)
+(se mostrara el modo de disparo en el HUD, se tiene que cambiar al icono i pulirlo) 

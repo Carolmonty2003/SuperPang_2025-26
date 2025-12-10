@@ -3,27 +3,27 @@
 import { Hero } from "../entities/Hero.js";
 import { GAME_SIZE } from "../core/constants.js";
 import { Hud } from "../UI/HUD.js";
+import { Platform } from "../objects/Platform.js";
 
 export class Level_01 extends Phaser.Scene {
   constructor() {
     super({ key: "Level_01" });
+    
+    // Map para guardar las instancias de Platform por cada tile
+    this.platformObjects = new Map();
   }
 
   preload() {
-    // --- 1. FONDO + TILESET MUROS ---
+    // --- 1. FONDO ---
     this.load.setPath("assets/sprites/backgrounds");
     this.load.spritesheet("backgrounds", "backgrounds.png", {
       frameWidth: 256,
       frameHeight: 192,
     });
 
-    // Mismos muros que en tu Level1
+    // --- 2. TILESETS (MUROS Y PLATAFORMAS) ---
+    this.load.setPath("assets/tiled/tilesets");
     this.load.image("tileset_muros_img", "tileset_muros.png");
-
-    // --- 2. TILESET PLATAFORMAS ---
-    
-    //   assets/tiled/maps/tilesets/tileset_platform.png
-    this.load.setPath("assets/tiled/maps/tilesets");
     this.load.image("tileset_platform_img", "tileset_platform.png");
 
     // --- 3. TILEMAP NUEVO ---
@@ -78,6 +78,9 @@ export class Level_01 extends Phaser.Scene {
 
     this.walls.setCollisionByExclusion([-1]);
     this.platforms.setCollisionByExclusion([-1, 0]);
+
+    // Crear instancias de Platform para cada tile de plataforma
+    this.createPlatformObjects();
 
     // Mundo físico
     this.physics.world.setBounds(
@@ -143,6 +146,28 @@ export class Level_01 extends Phaser.Scene {
     });
   }
 
+  /**
+   * Crea instancias de Platform para cada tile de plataforma en el layer
+   */
+  createPlatformObjects() {
+    this.platformObjects.clear();
+    
+    // Recorrer todos los tiles del layer de plataformas
+    this.platforms.forEachTile((tile) => {
+      // Solo procesar tiles que tengan un index válido (no vacíos)
+      if (tile.index > 0) {
+        // Crear una clave única para este tile
+        const key = `${tile.x}_${tile.y}`;
+        
+        // Crear una instancia de Platform y guardarla
+        const platform = new Platform(this, tile);
+        this.platformObjects.set(key, platform);
+      }
+    });
+    
+    console.log(`Plataformas creadas: ${this.platformObjects.size}`);
+  }
+
   update(time, delta) {
     // De momento nada, HeroBase ya se encarga del movimiento
 
@@ -164,17 +189,19 @@ export class Level_01 extends Phaser.Scene {
    * tile:   Phaser.Tilemaps.Tile
    */
   onWeaponHitsPlatform(weapon, tile) {
-    if (tile && tile.tilemapLayer) {
-      tile.tilemapLayer.removeTileAt(tile.x, tile.y);
+    // Buscar el objeto Platform correspondiente a este tile
+    const key = `${tile.x}_${tile.y}`;
+    const platform = this.platformObjects.get(key);
+    
+    if (platform) {
+      // Usar el método break() de Platform
+      platform.break(weapon);
+      
+      // Eliminar de nuestro Map
+      this.platformObjects.delete(key);
+      
+      console.log(`Plataforma destruida en (${tile.x}, ${tile.y}). Restantes: ${this.platformObjects.size}`);
     }
-
-    if (weapon && weapon.active && weapon.destroy) {
-      weapon.destroy();
-    }
-
-    // Aquí en el futuro podrás hacer:
-    //  - lanzar partículas
-    //  - spawnear drops (items, power-ups, etc.)
   }
 }
 
