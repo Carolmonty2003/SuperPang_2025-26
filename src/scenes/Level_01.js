@@ -56,7 +56,12 @@ export class Level_01 extends Phaser.Scene {
     // pero la parte jugable será la del tilemap (por encima del HUD).
     const bg = this.add.image(0, 0, "backgrounds", 3).setOrigin(0, 0);
     bg.setDisplaySize(GAME_SIZE.WIDTH, BG_HEIGHT);
+
+    // el fondo al fondo de todo
+    bg.setDepth(-2);
+
     this.cameras.main.setBackgroundColor(0x000000);
+
 
     // --- MAPA DE TILED ---
     const map = this.make.tilemap({ key: "map_level_01" });
