@@ -141,6 +141,16 @@ export class BaseHexBall extends Phaser.Physics.Arcade.Sprite {
       if (scene.ballsGroup) {
         scene.ballsGroup.add(ball1);
         scene.ballsGroup.add(ball2);
+        
+        // Mark split balls if parent was marked for burst
+        if (this._markedForBurst && scene.burstClearActive) {
+          ball1._spawnedFromMarkedBall = true;
+          ball2._spawnedFromMarkedBall = true;
+          ball1._markedForBurst = true;
+          ball2._markedForBurst = true;
+          scene.markedForBurst.add(ball1);
+          scene.markedForBurst.add(ball2);
+        }
       }
 
       // SIEMPRE separar en direcciones opuestas (izq/der) y hacia ARRIBA

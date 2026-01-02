@@ -8,9 +8,16 @@ export const EVENTS = {
         READY: 'hero:ready',
         DAMAGED: 'hero:damaged',
         DIED: 'hero:died',
-        SHOOT: 'hero:shoot'
+        SHOOT: 'hero:shoot',
+        LIFE_GAINED: 'hero:life_gained',
+        WEAPON_UPGRADED: 'hero:weapon_upgraded'
     },
     enemy: {
         BALL_DESTROYED: 'enemy:ball_destroyed'
+    },
+    items: {
+        ITEM_SPAWNED: 'items:spawned',
+        ITEM_COLLECTED: 'items:collected',
+        ITEM_DESPAWNED: 'items:despawned'
     }
 };

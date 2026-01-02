@@ -140,6 +140,16 @@ export class BaseBall extends Phaser.Physics.Arcade.Sprite {
       if (scene.ballsGroup) {
         scene.ballsGroup.add(ball1);
         scene.ballsGroup.add(ball2);
+        
+        // Mark split balls if parent was marked for burst
+        if (this._markedForBurst && scene.burstClearActive) {
+          ball1._spawnedFromMarkedBall = true;
+          ball2._spawnedFromMarkedBall = true;
+          ball1._markedForBurst = true;
+          ball2._markedForBurst = true;
+          scene.markedForBurst.add(ball1);
+          scene.markedForBurst.add(ball2);
+        }
       }
 
       // Darles un impulso inicial: una a la izquierda, otra a la derecha

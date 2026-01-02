@@ -54,3 +54,39 @@ export const ENEMY = {
         MAX_SIZE: 4
     }
 };
+
+// Constantes para el sistema de items y drops
+export const ITEMS = {
+    // Drop configuration
+    DROP_CHANCE: 0.4, // 40% base drop chance
+    MAX_ITEMS_ON_SCREEN: 8,
+    
+    // Item time-to-live (TTL) in milliseconds
+    TTL: {
+        SCORE_BONUS: 8000,
+        POWER_UP_LIFE: 10000,
+        POWER_UP_SHIELD: 8000,
+        POWER_UP_SPEED: 9000,
+        POWER_UP_WEAPON: 7000
+    },
+    
+    // Score bonus values
+    SCORE: {
+        SMALL: 100,
+        MEDIUM: 250,
+        LARGE: 500,
+        SPECIAL: 1000
+    },
+    
+    // Power-up durations
+    DURATION: {
+        SHIELD: 5000,      // 5 seconds invulnerability
+        SPEED_BOOST: 8000  // 8 seconds speed boost
+    },
+    
+    // Power-up multipliers
+    MULTIPLIER: {
+        SPEED: 1.5 // 50% speed increase
+    }
+};
+
