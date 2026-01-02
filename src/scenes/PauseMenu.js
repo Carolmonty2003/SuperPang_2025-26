@@ -14,6 +14,9 @@ export class PauseMenu extends Phaser.Scene {
     const centerX = width / 2;
     const centerY = height / 2;
 
+    // Obtener la escena que está pausada (la que llamó al PauseMenu)
+    const pausedSceneKey = this.scene.settings.data?.from || this.scene.manager.getScenes(false)[0]?.scene.key;
+
     // Fondo semitransparente EN TODA LA PANTALLA
     this.add
       .rectangle(0, 0, width, height, 0x000000, 0.7)
@@ -28,9 +31,30 @@ export class PauseMenu extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
+    // === BOTÓN RESUME ===
+    const resumeText = this.add
+      .text(centerX, centerY - 40, "RESUME", {
+        fontSize: "32px",
+        fontFamily: "Arial",
+        color: "#ffffff",
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    resumeText.on("pointerover", () =>
+      resumeText.setStyle({ color: "#f39c12" })
+    );
+    resumeText.on("pointerout", () =>
+      resumeText.setStyle({ color: "#ffffff" })
+    );
+    resumeText.on("pointerdown", () => {
+      this.scene.resume(pausedSceneKey);
+      this.scene.stop(); // cierra PauseMenu
+    });
+
     // === BOTÓN RESTART ===
     const restartText = this.add
-      .text(centerX, centerY - 20, "RESTART", {
+      .text(centerX, centerY + 20, "RESTART", {
         fontSize: "32px",
         fontFamily: "Arial",
         color: "#ffffff",
@@ -45,14 +69,14 @@ export class PauseMenu extends Phaser.Scene {
       restartText.setStyle({ color: "#ffffff" })
     );
     restartText.on("pointerdown", () => {
-      this.scene.stop("Level1");
-      this.scene.start("Level1");
+      this.scene.stop(pausedSceneKey);
+      this.scene.start(pausedSceneKey);
       this.scene.stop(); // cierra PauseMenu
     });
 
     // === BOTÓN OPTIONS (en medio) ===
     const optionsText = this.add
-      .text(centerX, centerY + 40, "OPTIONS", {
+      .text(centerX, centerY + 80, "OPTIONS", {
         fontSize: "32px",
         fontFamily: "Arial",
         color: "#ffffff",
@@ -77,7 +101,7 @@ export class PauseMenu extends Phaser.Scene {
 
     // === BOTÓN EXIT ===
     const exitText = this.add
-      .text(centerX, centerY + 100, "EXIT", {
+      .text(centerX, centerY + 140, "EXIT", {
         fontSize: "32px",
         fontFamily: "Arial",
         color: "#ffffff",
@@ -92,14 +116,14 @@ export class PauseMenu extends Phaser.Scene {
       exitText.setStyle({ color: "#ffffff" })
     );
     exitText.on("pointerdown", () => {
-      this.scene.stop("Level1");
-      this.scene.start("MainMenuScene");
+      this.scene.stop(pausedSceneKey);
+      this.scene.start("SelectModeScene");
       this.scene.stop();
     });
 
     // ESC para reanudar el juego
     this.input.keyboard.on("keydown-ESC", () => {
-      this.scene.resume("Level1");
+      this.scene.resume(pausedSceneKey);
       this.scene.stop(); // cierra PauseMenu
     });
   }

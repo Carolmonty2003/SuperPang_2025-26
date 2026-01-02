@@ -4,7 +4,10 @@ import { Hero } from "../entities/Hero.js";
 import { GAME_SIZE } from "../core/constants.js";
 import { Hud } from "../UI/HUD.js";
 import { Platform } from "../objects/Platform.js";
-import { HugeBall, BALL_COLORS } from "../entities/enemies/BaseBalls.js";
+import { HugeBall } from "../entities/enemies/balls/normal/HugeBall.js";
+import { TinyBall } from "../entities/enemies/balls/normal/TinyBall.js";
+import { HexBigBall } from "../entities/enemies/balls/hexagonal/HexBigBall.js";
+import { BALL_COLORS } from "../entities/enemies/balls/BallConstants.js";
 
 export class Level_01 extends Phaser.Scene {
   constructor() {
@@ -32,12 +35,12 @@ export class Level_01 extends Phaser.Scene {
     // --- 4. SPRITES HERO ---
     this.load.setPath("assets/sprites/spritesheets/hero");
     this.load.spritesheet("player_walk", "player_walk.png", {
-      frameWidth: 436 / 4,
+      frameWidth: 109,  // 4 frames
       frameHeight: 118
     });
 
     this.load.spritesheet("player_shoot", "player_shoot.png", {
-      frameWidth: 191 / 2,
+      frameWidth: 96,  // 2 frames
       frameHeight: 119
     });
 
@@ -54,6 +57,21 @@ export class Level_01 extends Phaser.Scene {
     this.load.image("n_small", "n_small.png");
     this.load.image("n_tiny1", "n_tiny1.png");
     this.load.image("n_tiny2", "n_tiny2.png");
+
+    // --- 7. PELOTAS HEXAGONALES ---
+    this.load.setPath("assets/sprites/spritesheets/Balls");
+    this.load.spritesheet("hex_big", "hex_big.png", {
+      frameWidth: 98 / 3,
+      frameHeight: 30
+    });
+    this.load.spritesheet("hex_mid", "hex_mid.png", {
+      frameWidth: 52 / 3,
+      frameHeight: 16
+    });
+    this.load.spritesheet("hex_small", "hex_small.png", {
+      frameWidth: 33 / 3,
+      frameHeight: 10
+    });
   }
 
   create() {
@@ -86,8 +104,7 @@ export class Level_01 extends Phaser.Scene {
     // Bounds mundo físico
     this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
-    // --- INPUT (por si Hero lo necesita desde la Scene) ---
-    // Muchos Hero.js usan this.scene.cursors / this.scene.keyShoot o similares
+    // --- INPUT ---
     this.cursors = this.input.keyboard.createCursorKeys();
     this.keyShoot = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
@@ -116,14 +133,13 @@ export class Level_01 extends Phaser.Scene {
     const startY = map.heightInPixels - 64;
     this.hero = new Hero(this, startX, startY, "player_walk");
 
-    // Hacer al héroe completamente inmovable para que las bolas NO lo puedan empujar
+    // Configuración del héroe
     this.hero.body.immovable = true;
     this.hero.body.pushable = false;
-    this.hero.body.moves = true; // Puede moverse por input del usuario
-    this.hero.body.setMass(10000); // Masa muy alta para que no sea movido por colisiones
+    this.hero.body.moves = true;
+    this.hero.body.setMass(10000);
 
-    // Si tu Hero usa props de teclas internas, le damos también referencias típicas
-    // (No rompe nada si Hero no las usa)
+    // Referencias de input para el Hero
     this.hero.cursors = this.cursors;
     this.hero.keyShoot = this.keyShoot;
     this.hero.keySpace = this.keyShoot;
@@ -159,7 +175,7 @@ export class Level_01 extends Phaser.Scene {
 
     // --- PAUSA ---
     this.input.keyboard.on("keydown-ESC", () => {
-      this.scene.launch("PauseMenu");
+      this.scene.launch("PauseMenu", { from: "Level_01" });
       this.scene.pause();
       this.scene.bringToTop("PauseMenu");
     });

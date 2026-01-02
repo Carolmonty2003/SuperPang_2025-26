@@ -2,7 +2,9 @@
 
 import { Hero } from '../entities/Hero.js';
 
-import { BaseBall } from '../entities/enemies/BaseBalls.js';
+import { HugeBall } from '../entities/enemies/balls/normal/HugeBall.js';
+import { HexBigBall } from '../entities/enemies/balls/hexagonal/HexBigBall.js';
+import { BALL_COLORS } from '../entities/enemies/balls/BallConstants.js';
 import { GAME_SIZE } from '../core/constants.js';
 import { Hud } from '../UI/HUD.js';
 
@@ -26,20 +28,41 @@ export class Level1 extends Phaser.Scene {
     // --- SPRITES DEL HÉROE (los que usa Hero.js) ---
     this.load.setPath('assets/sprites/spritesheets/hero');
     this.load.spritesheet('player_walk', 'player_walk.png', {
-      frameWidth: 436 / 4, // 4 frames
+      frameWidth: 109, // 4 frames
       frameHeight: 118,
     });
     this.load.spritesheet('player_shoot', 'player_shoot.png', {
-      frameWidth: 191 / 2, // 2 frames
+      frameWidth: 96, // 2 frames
       frameHeight: 119,
     });
 
-    // --- ARMA Y ENEMIGOS ---
+    // --- ARMA ---
     this.load.setPath('assets/sprites/static');
     this.load.image('arponFijo', 'arponFijo.png');
-    this.load.image('ball', 'n_big.png');
-
     this.load.image('bullet', 'bullet.png');
+
+    // --- PELOTAS ---
+    this.load.image('n_huge', 'n_huge.png');
+    this.load.image('n_big', 'n_big.png');
+    this.load.image('n_mid', 'n_mid.png');
+    this.load.image('n_small', 'n_small.png');
+    this.load.image('n_tiny1', 'n_tiny1.png');
+    this.load.image('n_tiny2', 'n_tiny2.png');
+
+    // --- PELOTAS HEXAGONALES ---
+    this.load.setPath('assets/sprites/spritesheets/Balls');
+    this.load.spritesheet('hex_big', 'hex_big.png', {
+      frameWidth: 98 / 3,
+      frameHeight: 30
+    });
+    this.load.spritesheet('hex_mid', 'hex_mid.png', {
+      frameWidth: 52 / 3,
+      frameHeight: 16
+    });
+    this.load.spritesheet('hex_small', 'hex_small.png', {
+      frameWidth: 33 / 3,
+      frameHeight: 10
+    });
   }
 
   create() {
@@ -65,7 +88,7 @@ export class Level1 extends Phaser.Scene {
 
 
     // --- GRUPOS ---
-    // this.ballsGroup = this.add.group({ runChildUpdate: true });  <-- NO queremos pelotas ahora
+    this.ballsGroup = this.physics.add.group();
     this.bullets = this.add.group({ runChildUpdate: true }); 
    
     this.physics.add.collider(this.bullets, this.walls, (bullet, tile) => {
@@ -80,7 +103,12 @@ export class Level1 extends Phaser.Scene {
     this.hero = new Hero(this, startX, startY, 'player_walk');
     this.physics.add.collider(this.hero, this.walls);
 
+    // --- COLISIONES BOLAS ---
+    this.physics.add.collider(this.ballsGroup, this.walls, this.bounceBall, null, this);
+    this.physics.add.overlap(this.ballsGroup, this.hero, this.onHeroHitBall, null, this);
+
     // --- BOLA INICIAL ---
+    this.createBall();
    
     // --- HUD EN LA BANDA INFERIOR ---
     this.hud = new Hud(this, {
@@ -90,30 +118,94 @@ export class Level1 extends Phaser.Scene {
 
     // --- PAUSA CON ESC ---
     this.input.keyboard.on('keydown-ESC', () => {
-      this.scene.launch('PauseMenu');
+      this.scene.launch('PauseMenu', { from: 'Level1' });
       this.scene.pause();
       this.scene.bringToTop('PauseMenu');
     });
   }
 
-  update() {
-    // Colisión Arpón vs bolas
-    // Aquí podrás añadir overlaps bala-vs-algo cuando quieras usarlo
+  createBall() {
+    const startX = this.walls.width / 2;
+    const startY = 200;
+
+    // Crear pelota hexagonal para testear
+    const ball = new HexBigBall(this, startX, startY, 1, 1);
+    this.ballsGroup.add(ball);
   }
 
-  onWeaponHitBall(weapon, ball) {
-    weapon.destroy();
+  bounceBall(ball, objectOrTile) {
+    if (!ball || !ball.body) return;
 
-    if (ball.active) {
-      ball.takeDamage();
+    // Cooldown para evitar rebotes múltiples
+    const now = Date.now();
+    if (ball._lastBounce && now - ball._lastBounce < 100) {
+      return;
+    }
+    ball._lastBounce = now;
+
+    // Asegurarse de que _prevVelocity existe
+    if (!ball._prevVelocity) {
+      ball._prevVelocity = { x: 150, y: 400 };
+    }
+
+    // Primera vez: guardar la velocidad de impacto como constante
+    if (!ball._constantBounceVel) {
+      ball._constantBounceVel = {
+        x: Math.abs(ball._prevVelocity.x) || 150,
+        y: Math.abs(ball._prevVelocity.y) || 400
+      };
+    }
+
+    // Rebote perfecto: usar velocidad constante guardada
+    if (ball.body.blocked.down || ball.body.touching.down) {
+      ball.body.setVelocityY(-ball._constantBounceVel.y);
+      ball.y -= 5;
+    }
+    
+    if (ball.body.blocked.up || ball.body.touching.up) {
+      ball.body.setVelocityY(ball._constantBounceVel.y);
+      ball.y += 5;
+    }
+    
+    if (ball.body.blocked.left || ball.body.touching.left) {
+      ball.body.setVelocityX(ball._constantBounceVel.x);
+      ball.x += 5;
+    }
+    
+    if (ball.body.blocked.right || ball.body.touching.right) {
+      ball.body.setVelocityX(-ball._constantBounceVel.x);
+      ball.x -= 5;
     }
   }
 
-  onHeroHitBall(_hero, _ball)
+  update() {
+    // Colisión Arpón vs bolas
+    if (this.hero.activeHarpoon && this.hero.activeHarpoon.active) {
+      this.physics.overlap(
+        this.hero.activeHarpoon,
+        this.ballsGroup,
+        this.onWeaponHitBall,
+        null,
+        this
+      );
+    }
+
+    // Balas destruyendo pelotas
+    this.physics.overlap(this.bullets, this.ballsGroup, this.onWeaponHitBall, null, this);
+  }
+
+  onWeaponHitBall(weapon, ball) {
+    if (weapon && weapon.active && ball && ball.active) {
+      if (weapon.destroy) weapon.destroy();
+      if (ball.takeDamage) ball.takeDamage();
+    }
+  }
+
+  onHeroHitBall(hero, ball)
   {
-      // Usamos SIEMPRE la instancia que tenemos guardada en la escena
-      if (this.hero && typeof this.hero.hit === 'function') {
-          this.hero.hit();
+      // El héroe recibe daño cuando toca la pelota
+      if (hero && typeof hero.takeDamage === 'function') {
+          hero.takeDamage(1);
       }
   }
 }

@@ -4,8 +4,10 @@ import { WEAPON } from '../core/constants.js';
 
 export class Harpoon extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y, texture = 'arponFijo') {
-    // Lo spawneamos DEBAJO de la pantalla
-    const spawnY = scene.cameras.main.height + 800; // un poco más abajo del borde
+    // Lo spawneamos DEBAJO del mundo físico (no de la cámara)
+    // Usar el bounds del physics world para asegurar que funciona en todas las escenas
+    const worldHeight = scene.physics.world.bounds.height;
+    const spawnY = worldHeight + 800; // un poco más abajo del límite del mundo
     super(scene, x, spawnY, texture);
 
     this.scene = scene;
@@ -13,6 +15,9 @@ export class Harpoon extends Phaser.Physics.Arcade.Sprite {
     // Añadir a la escena + física
     scene.add.existing(this);
     this.scene.physics.world.enable(this);
+
+    // NO colisionar con los límites del mundo (puede estar fuera mientras sube)
+    this.body.setCollideWorldBounds(false);
 
     // Anclado abajo (como una lanza que viene desde abajo)
     // PROFUNDIDAD: por encima del fondo (-2) y por debajo de todo lo demás (0)
