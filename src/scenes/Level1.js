@@ -56,7 +56,13 @@ export class Level1 extends Phaser.Scene {
     // --- FONDO SOLO EN 0–alturaMapa ---
     const bg = this.add.image(0, 0, 'backgrounds', 0).setOrigin(0, 0);
     bg.setDisplaySize(GAME_SIZE.WIDTH, map.heightInPixels);
+
+    // el fondo va al fondo de todo
+    bg.setDepth(-2);
+
     this.cameras.main.setBackgroundColor(0x000000);
+
+
 
     // --- GRUPOS ---
     // this.ballsGroup = this.add.group({ runChildUpdate: true });  <-- NO queremos pelotas ahora

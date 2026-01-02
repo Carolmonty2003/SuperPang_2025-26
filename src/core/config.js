@@ -28,6 +28,11 @@ export function buildConfig({ scenes = [] } = {})
                 debug: PHYSICS.DEBUG
             }
         },
+        fps:
+        {
+        target:60,
+        forceSetTimeOut:true
+        },
         scene: scenes
     };
 }
