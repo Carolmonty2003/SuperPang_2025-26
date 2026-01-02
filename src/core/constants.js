@@ -30,7 +30,7 @@ export const WEAPON = {
 };
 
 export const BALLS = {
-    BALL_BOUNCE: 0.95, // Rebote casi perfecto (95% de energía conservada)
+    BALL_BOUNCE: 1.0, // Rebote perfecto (100% de energía conservada)
     BALL_GRAVITY: 600, // Gravedad específica para bolas
     SPEED_X: 150
 };

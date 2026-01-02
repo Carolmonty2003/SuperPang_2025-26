@@ -4,13 +4,11 @@ import { Hero } from "../entities/Hero.js";
 import { GAME_SIZE } from "../core/constants.js";
 import { Hud } from "../UI/HUD.js";
 import { Platform } from "../objects/Platform.js";
-import { HugeBall } from "../entities/enemies/BaseBalls.js";
+import { HugeBall, BALL_COLORS } from "../entities/enemies/BaseBalls.js";
 
 export class Level_01 extends Phaser.Scene {
   constructor() {
     super({ key: "Level_01" });
-    
-    // Map para guardar las instancias de Platform por cada tile
     this.platformObjects = new Map();
   }
 
@@ -19,7 +17,7 @@ export class Level_01 extends Phaser.Scene {
     this.load.setPath("assets/sprites/backgrounds");
     this.load.spritesheet("backgrounds", "backgrounds.png", {
       frameWidth: 256,
-      frameHeight: 192,
+      frameHeight: 192
     });
 
     // --- 2. TILESETS (MUROS Y PLATAFORMAS) ---
@@ -27,20 +25,20 @@ export class Level_01 extends Phaser.Scene {
     this.load.image("tileset_muros_img", "tileset_muros.png");
     this.load.image("tileset_platform_img", "tileset_platform.png");
 
-    // --- 3. TILEMAP NUEVO ---
+    // --- 3. TILEMAP ---
     this.load.setPath("assets/tiled/maps");
     this.load.tilemapTiledJSON("map_level_01", "Level_01.json");
 
-    // --- 4. SPRITES DEL HÉROE (los que usa Hero.js) ---
+    // --- 4. SPRITES HERO ---
     this.load.setPath("assets/sprites/spritesheets/hero");
     this.load.spritesheet("player_walk", "player_walk.png", {
-      frameWidth: 436 / 4, // 4 frames
-      frameHeight: 118,
+      frameWidth: 436 / 4,
+      frameHeight: 118
     });
 
     this.load.spritesheet("player_shoot", "player_shoot.png", {
-      frameWidth: 191 / 2, // 2 frames
-      frameHeight: 119,
+      frameWidth: 191 / 2,
+      frameHeight: 119
     });
 
     // --- 5. ARMA ---
@@ -66,38 +64,28 @@ export class Level_01 extends Phaser.Scene {
     bg.setDisplaySize(GAME_SIZE.WIDTH, BG_HEIGHT);
     this.cameras.main.setBackgroundColor(0x000000);
 
-    // --- MAPA DE TILED ---
+    // --- MAPA ---
     const map = this.make.tilemap({ key: "map_level_01" });
 
-    const tilesetMuros = map.addTilesetImage(
-      "tileset_muros",
-      "tileset_muros_img"
-    );
-    const tilesetPlatform = map.addTilesetImage(
-      "tileset_platform",
-      "tileset_platform_img"
-    );
+    const tilesetMuros = map.addTilesetImage("tileset_muros", "tileset_muros_img");
+    const tilesetPlatform = map.addTilesetImage("tileset_platform", "tileset_platform_img");
 
     this.walls = map.createLayer("layer_walls", tilesetMuros, 0, 0);
     this.platforms = map.createLayer("layer_platforms", tilesetPlatform, 0, 0);
 
+    // Colisión tiles (IMPORTANTE: los tiles deben tener collision shape en Tiled)
     this.walls.setCollisionByExclusion([-1]);
     this.platforms.setCollisionByExclusion([-1, 0]);
-    
-    // Configurar bounce en las layers para rebote perfecto
-    this.walls.setTileIndexCallback(-1, null, this);
-    this.platforms.setTileIndexCallback(-1, null, this);
 
-    // Crear instancias de Platform para cada tile de plataforma
     this.createPlatformObjects();
 
-    // Mundo físico
-    this.physics.world.setBounds(
-      0,
-      0,
-      map.widthInPixels,
-      map.heightInPixels
-    );
+    // Bounds mundo físico
+    this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+
+    // --- INPUT (por si Hero lo necesita desde la Scene) ---
+    // Muchos Hero.js usan this.scene.cursors / this.scene.keyShoot o similares
+    this.cursors = this.input.keyboard.createCursorKeys();
+    this.keyShoot = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
     // --- GRUPO DE BALAS ---
     this.bullets = this.add.group({ runChildUpdate: true });
@@ -105,12 +93,12 @@ export class Level_01 extends Phaser.Scene {
     // --- GRUPO DE PELOTAS ---
     this.ballsGroup = this.physics.add.group();
 
-    // Balas que se destruyen al chocar con las PAREDES
-    this.physics.add.collider(this.bullets, this.walls, (bullet, tile) => {
+    // Balas chocan con walls -> se destruyen
+    this.physics.add.collider(this.bullets, this.walls, (bullet) => {
       if (bullet && bullet.active) bullet.destroy();
     });
 
-    // Balas que rompen PLATAFORMAS
+    // Balas rompen plataformas
     this.physics.add.collider(
       this.bullets,
       this.platforms,
@@ -119,47 +107,53 @@ export class Level_01 extends Phaser.Scene {
       this
     );
 
-    // --- HÉROE ---
+    // --- HERO ---
     const startX = map.widthInPixels / 2;
     const startY = map.heightInPixels - 64;
-
     this.hero = new Hero(this, startX, startY, "player_walk");
+
+    // Hacer al héroe completamente inmovable para que las bolas NO lo puedan empujar
+    this.hero.body.immovable = true;
+    this.hero.body.pushable = false;
+    this.hero.body.moves = true; // Puede moverse por input del usuario
+    this.hero.body.setMass(10000); // Masa muy alta para que no sea movido por colisiones
+
+    // Si tu Hero usa props de teclas internas, le damos también referencias típicas
+    // (No rompe nada si Hero no las usa)
+    this.hero.cursors = this.cursors;
+    this.hero.keyShoot = this.keyShoot;
+    this.hero.keySpace = this.keyShoot;
 
     this.physics.add.collider(this.hero, this.walls);
     this.physics.add.collider(this.hero, this.platforms);
 
-    // --- COLISIONES DE LAS PELOTAS ---
-    // Las pelotas rebotan contra paredes y plataformas
-    this.physics.add.collider(this.ballsGroup, this.walls, this.onBallHitWall, null, this);
-    this.physics.add.collider(this.ballsGroup, this.platforms, this.onBallHitPlatform, null, this);
-    
-    // SIN colisión héroe-pelota por ahora
+    // --- COLISIONES BOLAS ---
+    this.physics.add.collider(this.ballsGroup, this.walls, this.bounceBall, null, this);
+    this.physics.add.collider(this.ballsGroup, this.platforms, this.bounceBall, null, this);
+    // Overlap con el héroe - NO hay separación física automática, solo rebote manual
+    this.physics.add.overlap(this.ballsGroup, this.hero, this.bounceOffHero, null, this);
 
-    // --- ANIMACIÓN IDLE ---
+    // --- ANIM IDLE ---
     if (!this.anims.exists("idle")) {
       this.anims.create({
         key: "idle",
-        frames: this.anims.generateFrameNumbers("player_walk", {
-          start: 0,
-          end: 2,
-        }),
+        frames: this.anims.generateFrameNumbers("player_walk", { start: 0, end: 2 }),
         frameRate: 6,
-        repeat: -1,
+        repeat: -1
       });
     }
-
     this.hero.play("idle");
 
-    // --- CREAR PELOTA INICIAL ---
+    // --- PELOTA INICIAL ---
     this.createBall();
 
     // --- HUD ---
     this.hud = new Hud(this, {
       uiTop: map.heightInPixels,
-      mode: "HARPOON",
+      mode: "HARPOON"
     });
 
-    // --- PAUSA CON ESC ---
+    // --- PAUSA ---
     this.input.keyboard.on("keydown-ESC", () => {
       this.scene.launch("PauseMenu");
       this.scene.pause();
@@ -167,12 +161,9 @@ export class Level_01 extends Phaser.Scene {
     });
   }
 
-  /**
-   * Crea instancias de Platform para cada tile de plataforma en el layer
-   */
   createPlatformObjects() {
     this.platformObjects.clear();
-    
+
     this.platforms.forEachTile((tile) => {
       if (tile.index > 0) {
         const key = `${tile.x}_${tile.y}`;
@@ -180,92 +171,81 @@ export class Level_01 extends Phaser.Scene {
         this.platformObjects.set(key, platform);
       }
     });
-    
+
     console.log(`Plataformas creadas: ${this.platformObjects.size}`);
   }
 
-  /**
-   * Crear una pelota inicial en el nivel
-   */
   createBall() {
-    // Usar directamente el mapa que ya tenemos en create()
     const startX = this.walls.width / 2;
     const startY = 200;
 
-    console.log(`Creando pelota en x:${startX}, y:${startY}`);
+    // Elegir un color aleatorio para la bola inicial
+    const colors = Object.values(BALL_COLORS);
+    const randomColor = colors[Math.floor(Math.random() * colors.length)];
 
-    // Crear una HugeBall (dirección 1 = derecha)
-    const ball = new HugeBall(this, startX, startY, 1);
+    const ball = new HugeBall(this, startX, startY, 1, randomColor);
     this.ballsGroup.add(ball);
-    
-    // Darle un pequeño impulso inicial hacia abajo para que empiece a moverse
+
+    // Empujón inicial con velocidad horizontal y vertical
     ball.body.setVelocityY(50);
-    
-    console.log(`Pelota creada:`, ball);
-    console.log(`Pelota visible:`, ball.visible);
-    console.log(`Pelota posición:`, ball.x, ball.y);
-    console.log(`Pelotas en grupo:`, this.ballsGroup.getChildren().length);
+    ball.body.setVelocityX(150); // Fuerza horizontal para probar rebote en paredes
   }
 
-  /**
-   * Callback cuando la pelota golpea un muro
-   */
-  onBallHitWall(ball, tile) {
+  bounceBall(ball, objectOrTile) {
     if (!ball || !ball.body) return;
-    
-    // Rebote en paredes laterales
-    if (ball.body.touching.left || ball.body.touching.right) {
-      ball.body.setVelocityX(-ball.body.velocity.x);
+
+    // Cooldown para evitar rebotes múltiples
+    const now = Date.now();
+    if (ball._lastBounce && now - ball._lastBounce < 100) {
+      return; // Ignorar si rebotó hace menos de 100ms
+    }
+    ball._lastBounce = now;
+
+    // Asegurarse de que _prevVelocity existe
+    if (!ball._prevVelocity) {
+      ball._prevVelocity = { x: 150, y: 400 };
+    }
+
+    // Primera vez: guardar la velocidad de impacto como constante
+    if (!ball._constantBounceVel) {
+      ball._constantBounceVel = {
+        x: Math.abs(ball._prevVelocity.x) || 150,
+        y: Math.abs(ball._prevVelocity.y) || 400
+      };
+      console.log('Stored constant bounce velocity:', ball._constantBounceVel);
+    }
+
+    // Rebote perfecto: usar velocidad constante guardada
+    if (ball.body.blocked.down || ball.body.touching.down) {
+      ball.body.setVelocityY(-ball._constantBounceVel.y);
+      ball.y -= 5; // Mayor separación
     }
     
-    // Rebote en suelo/techo - conservar velocidad previa al impacto
-    if (ball.body.touching.down) {
-      // Aplicar velocidad hacia arriba basada en la velocidad previa
-      const bounceVelocity = Math.abs(ball.body.velocity.y) * 0.95;
-      ball.body.setVelocityY(-Math.max(bounceVelocity, 200));
-    } else if (ball.body.touching.up) {
-      ball.body.setVelocityY(-ball.body.velocity.y);
+    if (ball.body.blocked.up || ball.body.touching.up) {
+      ball.body.setVelocityY(ball._constantBounceVel.y);
+      ball.y += 5;
+    }
+    
+    if (ball.body.blocked.left || ball.body.touching.left) {
+      ball.body.setVelocityX(ball._constantBounceVel.x);
+      ball.x += 5;
+    }
+    
+    if (ball.body.blocked.right || ball.body.touching.right) {
+      ball.body.setVelocityX(-ball._constantBounceVel.x);
+      ball.x -= 5;
     }
   }
 
-  /**
-   * Callback cuando la pelota golpea una plataforma
-   */
-  onBallHitPlatform(ball, tile) {
-    if (!ball || !ball.body) return;
-    
-    // Rebote en plataformas laterales
-    if (ball.body.touching.left || ball.body.touching.right) {
-      ball.body.setVelocityX(-ball.body.velocity.x);
-    }
-    
-    // Rebote desde abajo o arriba de la plataforma
-    if (ball.body.touching.down) {
-      // Aplicar velocidad hacia arriba basada en la velocidad previa
-      const bounceVelocity = Math.abs(ball.body.velocity.y) * 0.95;
-      ball.body.setVelocityY(-Math.max(bounceVelocity, 200));
-    } else if (ball.body.touching.up) {
-      ball.body.setVelocityY(-ball.body.velocity.y);
-    }
+  bounceOffHero(hero, ball) {
+    if (!ball || !ball.body || !hero || !hero.body) return;
+
+    // El JUGADOR recibe daño cuando toca la pelota
+    hero.takeDamage(1);
   }
 
-  /**
-   * Callback cuando el héroe toca una pelota
-   */
-  onHeroBallCollision(hero, ball) {
-    if (hero && hero.active && ball && ball.active) {
-      console.log("¡Héroe tocado por pelota!");
-      
-      if (hero.takeDamage) {
-        hero.takeDamage();
-      }
-      
-      this.game.events.emit('HERO_DAMAGED');
-    }
-  }
-
-  update(time, delta) {
-    // Arpón rompiendo PLATAFORMAS
+  update() {
+    // Arpón rompiendo plataformas y pelotas
     if (this.hero.activeHarpoon && this.hero.activeHarpoon.active) {
       this.physics.overlap(
         this.hero.activeHarpoon,
@@ -275,7 +255,6 @@ export class Level_01 extends Phaser.Scene {
         this
       );
 
-      // Arpón destruyendo PELOTAS
       this.physics.overlap(
         this.hero.activeHarpoon,
         this.ballsGroup,
@@ -285,51 +264,29 @@ export class Level_01 extends Phaser.Scene {
       );
     }
 
-    // Balas destruyendo PELOTAS
-    this.physics.overlap(
-      this.bullets,
-      this.ballsGroup,
-      this.onWeaponHitsBall,
-      null,
-      this
-    );
+    // Balas destruyendo pelotas
+    this.physics.overlap(this.bullets, this.ballsGroup, this.onWeaponHitsBall, null, this);
   }
 
-  /**
-   * Callback común para cuando un arma golpea una plataforma
-   */
   onWeaponHitsPlatform(weapon, tile) {
     const key = `${tile.x}_${tile.y}`;
     const platform = this.platformObjects.get(key);
-    
+
     if (platform) {
       platform.break(weapon);
       this.platformObjects.delete(key);
-      console.log(`Plataforma destruida en (${tile.x}, ${tile.y}). Restantes: ${this.platformObjects.size}`);
     }
-    
-    // Destruir el arma (bala o arpón) después de romper la plataforma
-    if (weapon && weapon.active && weapon.destroy) {
-      weapon.destroy();
-    }
+
+    if (weapon && weapon.active && weapon.destroy) weapon.destroy();
   }
 
-  /**
-   * Callback cuando un arma golpea una pelota
-   */
   onWeaponHitsBall(weapon, ball) {
     if (weapon && weapon.active && ball && ball.active) {
-      // Destruir el arma (arpón o bala)
-      if (weapon.destroy) {
-        weapon.destroy();
-      }
-      
-      // Dañar la pelota
-      if (ball.takeDamage) {
-        ball.takeDamage();
-      }
+      if (weapon.destroy) weapon.destroy();
+      if (ball.takeDamage) ball.takeDamage();
     }
   }
 }
 
 export default Level_01;
+0

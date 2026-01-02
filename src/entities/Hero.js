@@ -20,6 +20,10 @@ export class Hero extends HeroBase
 
         this.weaponType = HERO_WEAPON.HARPOON;
 
+        // Sistema de vida e invencibilidad
+        this.lives = 3; // Usar 'lives' para compatibilidad con HUD
+        this.isInvulnerable = false;
+
         this.createAnimations();
 
         // cambio de arma
@@ -30,6 +34,9 @@ export class Hero extends HeroBase
         this.key2.on('down', () => this.setWeapon(HERO_WEAPON.GUN));
 
         this.play('idle');
+
+        // Notificar al HUD que el héroe está listo
+        this.scene.game.events.emit(EVENTS.hero.READY, this);
     }
 
     setWeapon(weaponType) {
@@ -117,5 +124,60 @@ export class Hero extends HeroBase
         });
 
         this.scene.game.events.emit(EVENTS.hero.SHOOT);
+    }
+
+    takeDamage(amount = 1) {
+        // Si ya es invulnerable, no recibe daño
+        if (this.isInvulnerable) return;
+
+        // Reducir vida
+        this.lives -= amount;
+        console.log(`Hero took ${amount} damage! Lives: ${this.lives}`);
+
+        // Notificar al HUD de la pérdida de vida
+        this.scene.game.events.emit(EVENTS.hero.DAMAGED, this.lives);
+
+        // Activar invencibilidad
+        this.isInvulnerable = true;
+
+        // Parpadeo rojo durante 2 segundos
+        const invulnerabilityDuration = 2000;
+        const blinkInterval = 150;
+        let blinkCount = 0;
+        const maxBlinks = invulnerabilityDuration / blinkInterval;
+
+        const blinkTimer = this.scene.time.addEvent({
+            delay: blinkInterval,
+            callback: () => {
+                blinkCount++;
+                // Alternar entre rojo y normal
+                if (blinkCount % 2 === 0) {
+                    this.setTint(0xff0000); // Rojo
+                } else {
+                    this.clearTint(); // Normal
+                }
+
+                // Terminar el parpadeo
+                if (blinkCount >= maxBlinks) {
+                    this.clearTint();
+                    this.isInvulnerable = false;
+                    blinkTimer.destroy();
+                }
+            },
+            loop: true
+        });
+
+        // Verificar muerte
+        if (this.lives <= 0) {
+            this.die();
+        }
+    }
+
+    die() {
+        console.log('Hero died! Game Over!');
+        // Notificar muerte al sistema
+        this.scene.game.events.emit(EVENTS.hero.DIED);
+        this.scene.game.events.emit(EVENTS.game.GAME_OVER);
+        // Aquí puedes agregar lógica de muerte: animación, game over screen, etc.
     }
 }
