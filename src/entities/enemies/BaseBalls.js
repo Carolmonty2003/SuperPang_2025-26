@@ -1,3 +1,5 @@
+import { EVENTS } from '../../core/events.js';
+
 // Enum de colores para las pelotas
 export const BALL_COLORS = {
   RED: 0xff0000,
@@ -10,8 +12,17 @@ export const BALL_COLORS = {
   WHITE: 0xffffff
 };
 
+// Puntos por tamaño de bola
+export const BALL_SCORES = {
+  HUGE: 10,
+  BIG: 20,
+  MID: 30,
+  SMALL: 40,
+  TINY: 50
+};
+
 export class BaseBall extends Phaser.Physics.Arcade.Sprite {
-  constructor(scene, x, y, texture, speedX, nextBallType = null, color = BALL_COLORS.WHITE) {
+  constructor(scene, x, y, texture, speedX, nextBallType = null, color = BALL_COLORS.WHITE, scoreValue = 10) {
     super(scene, x, y, texture);
     
     scene.add.existing(this);
@@ -20,6 +31,7 @@ export class BaseBall extends Phaser.Physics.Arcade.Sprite {
     this.nextBallType = nextBallType;
     this.speedX = speedX;
     this.ballColor = color; // Guardar el color para heredarlo
+    this.scoreValue = scoreValue; // Puntos que da esta bola
 
     // Primero configurar el collider antes de escalar
     // Usar el tamaño original del sprite para el radio
@@ -79,6 +91,11 @@ export class BaseBall extends Phaser.Physics.Arcade.Sprite {
   }
 
   takeDamage() {
+    // Dar puntos por destruir esta bola
+    if (this.scene && this.scene.game && this.scene.game.events) {
+      this.scene.game.events.emit(EVENTS.game.SCORE_CHANGE, this.scoreValue);
+    }
+    
     // Si tiene un tipo de bola siguiente, crear 2 bolas más pequeñas ANTES de destruir
     if (this.nextBallType) {
       this.split();
@@ -136,30 +153,30 @@ export class BaseBall extends Phaser.Physics.Arcade.Sprite {
 
 export class HugeBall extends BaseBall {
   constructor(scene, x, y, direction = 1, color = BALL_COLORS.RED) {
-    super(scene, x, y, "n_huge", 150 * direction, "big", color);
+    super(scene, x, y, "n_huge", 150 * direction, "big", color, BALL_SCORES.HUGE);
   }
 }
 
 export class BigBall extends BaseBall {
   constructor(scene, x, y, direction = 1, color = BALL_COLORS.RED) {
-    super(scene, x, y, "n_big", 180 * direction, "mid", color);
+    super(scene, x, y, "n_big", 180 * direction, "mid", color, BALL_SCORES.BIG);
   }
 }
 
 export class MidBall extends BaseBall {
   constructor(scene, x, y, direction = 1, color = BALL_COLORS.RED) {
-    super(scene, x, y, "n_mid", 210 * direction, "small", color);
+    super(scene, x, y, "n_mid", 210 * direction, "small", color, BALL_SCORES.MID);
   }
 }
 
 export class SmallBall extends BaseBall {
   constructor(scene, x, y, direction = 1, color = BALL_COLORS.RED) {
-    super(scene, x, y, "n_small", 240 * direction, "tiny", color);
+    super(scene, x, y, "n_small", 240 * direction, "tiny", color, BALL_SCORES.SMALL);
   }
 }
 
 export class TinyBall extends BaseBall {
   constructor(scene, x, y, direction = 1, color = BALL_COLORS.RED) {
-    super(scene, x, y, "n_tiny1", 270 * direction, null, color); // null = no más divisiones
+    super(scene, x, y, "n_tiny1", 270 * direction, null, color, BALL_SCORES.TINY); // null = no más divisiones
   }
 }
