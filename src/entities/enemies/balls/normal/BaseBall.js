@@ -84,6 +84,9 @@ export class BaseBall extends Phaser.Physics.Arcade.Sprite {
   }
 
   takeDamage() {
+    // Mostrar puntaje flotante en azul
+    this.showFloatingScore();
+    
     // Dar puntos por destruir esta bola
     if (this.scene && this.scene.game && this.scene.game.events) {
       this.scene.game.events.emit(EVENTS.game.SCORE_CHANGE, this.scoreValue);
@@ -96,6 +99,33 @@ export class BaseBall extends Phaser.Physics.Arcade.Sprite {
     
     // Destruir la bola actual DESPUÉS de crear las nuevas
     this.destroy();
+  }
+
+  showFloatingScore() {
+    // Crear texto flotante con el puntaje
+    const scoreText = this.scene.add.text(this.x, this.y, `+${this.scoreValue}`, {
+      fontSize: '32px',
+      fontFamily: 'Arial',
+      color: '#0066FF', // Azul
+      fontStyle: 'bold',
+      stroke: '#FFFFFF',
+      strokeThickness: 3
+    });
+    
+    scoreText.setOrigin(0.5, 0.5);
+    scoreText.setDepth(100); // Por encima de todo
+    
+    // Animación: flota hacia arriba y desaparece
+    this.scene.tweens.add({
+      targets: scoreText,
+      y: scoreText.y - 50,
+      alpha: 0,
+      duration: 800,
+      ease: 'Power2',
+      onComplete: () => {
+        scoreText.destroy();
+      }
+    });
   }
 
   split() {

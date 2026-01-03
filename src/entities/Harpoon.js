@@ -7,7 +7,14 @@ export class Harpoon extends Phaser.Physics.Arcade.Sprite {
     // Lo spawneamos DEBAJO del mundo físico (no de la cámara)
     // Usar el bounds del physics world para asegurar que funciona en todas las escenas
     const worldHeight = scene.physics.world.bounds.height;
-    const spawnY = worldHeight + 800; // un poco más abajo del límite del mundo
+    
+    // Ajustar posición de spawn según el sprite - arpon es más largo, necesita spawnearse más abajo
+    let spawnOffset = 800;
+    if (texture === 'arpon') {
+      spawnOffset = 1800; // Más abajo para compensar el sprite más largo
+    }
+    
+    const spawnY = worldHeight + spawnOffset;
     super(scene, x, spawnY, texture);
 
     this.scene = scene;
@@ -23,16 +30,39 @@ export class Harpoon extends Phaser.Physics.Arcade.Sprite {
     // PROFUNDIDAD: por encima del fondo (-2) y por debajo de todo lo demás (0)
     this.setDepth(-1);
     this.setOrigin(0.5, 1);
-    this.setScale(4, 5);
+    
+    // Ajustar escala según el sprite - arpon es más alto, necesita escala menor
+    if (texture === 'arpon') {
+      this.setScale(2.5, 5); // Escala más ancha para arpon
+    } else {
+      this.setScale(4, 5); // Escala normal para arponFijo
+    }
 
     // Sin gravedad, no lo mueve nada salvo nuestra velocidad
     this.body.setAllowGravity(false);
     this.body.setImmovable(true);
 
     // Collider fijo que coincide con el sprite
-    const bodyWidth  = this.displayWidth * 0.4; // un pelín más estrecho
-    const bodyHeight = this.displayHeight - 740;
-    this.body.setSize(bodyWidth, bodyHeight, true); // true = centrar en el sprite
+    let bodyWidth, bodyHeight;
+    
+    if (texture === 'arpon') {
+      // Para arpon: collider que cubra casi todo el sprite visible
+      bodyWidth = this.displayWidth * 0.6;
+      bodyHeight = this.displayHeight * 0.9;
+      
+      // Centrar el collider horizontalmente (offset desde el origen del sprite)
+      // Como el origin es (0.5, 1), el sprite está centrado en X
+      const offsetX = (this.width - bodyWidth) / 2;
+      const offsetY = 0; // Empezar desde arriba
+      
+      this.body.setSize(bodyWidth, bodyHeight);
+      this.body.setOffset(offsetX, offsetY);
+    } else {
+      // Para arponFijo: mantener lógica original
+      bodyWidth = this.displayWidth * 0.4;
+      bodyHeight = this.displayHeight - 740;
+      this.body.setSize(bodyWidth, bodyHeight, true);
+    }
 
     // Velocidad constante hacia arriba (recto, sin parábola)
     this.body.setVelocityY(-WEAPON.HARPOON_SPEED);

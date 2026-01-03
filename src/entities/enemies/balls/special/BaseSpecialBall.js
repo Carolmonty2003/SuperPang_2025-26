@@ -142,6 +142,9 @@ export class BaseSpecialBall extends Phaser.Physics.Arcade.Sprite {
     if (this.isConsumed || !this.active) return;
     this.isConsumed = true;
     
+    // Mostrar puntaje flotante en azul
+    this.showFloatingScore();
+    
     // Determine effect based on current frame/state
     const effectType = this.currentVariant === SPECIAL_BALL_VARIANTS.CLOCK ? 'CLOCK' : 'STAR';
     
@@ -272,6 +275,33 @@ export class BaseSpecialBall extends Phaser.Physics.Arcade.Sprite {
       duration: 400,
       ease: 'Power2',
       onComplete: () => flash.destroy()
+    });
+  }
+
+  showFloatingScore() {
+    // Crear texto flotante con el puntaje
+    const scoreText = this.scene.add.text(this.x, this.y, `+${this.scoreValue}`, {
+      fontSize: '32px',
+      fontFamily: 'Arial',
+      color: '#0066FF', // Azul
+      fontStyle: 'bold',
+      stroke: '#FFFFFF',
+      strokeThickness: 3
+    });
+    
+    scoreText.setOrigin(0.5, 0.5);
+    scoreText.setDepth(100); // Por encima de todo
+    
+    // Animación: flota hacia arriba y desaparece
+    this.scene.tweens.add({
+      targets: scoreText,
+      y: scoreText.y - 50,
+      alpha: 0,
+      duration: 800,
+      ease: 'Power2',
+      onComplete: () => {
+        scoreText.destroy();
+      }
     });
   }
 }

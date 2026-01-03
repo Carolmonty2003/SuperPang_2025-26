@@ -1,5 +1,6 @@
 import { HeroBase } from './HeroBase.js';
 import { Harpoon } from './Harpoon.js';
+import { FixedHarpoon } from './FixedHarpoon.js';
 import { Bullet } from './Bullet.js';
 import { EVENTS } from '../core/events.js';
 import { WEAPON_LEVELS, MAX_WEAPON_LEVEL } from './items/drops/PowerUpWeapon.js';
@@ -10,6 +11,7 @@ import { SPEED_CONFIG } from './items/drops/PowerUpSpeed.js';
 export const HERO_WEAPON = {
     HARPOON: 1,
     GUN: 2,
+    FIXED_HARPOON: 3,
 };
 
 export class Hero extends HeroBase 
@@ -18,7 +20,9 @@ export class Hero extends HeroBase
     {
         super(scene, x, y, texture);
 
-        this.activeHarpoon = null;
+        this.activeHarpoons = []; // Array to track multiple harpoons
+        this.maxHarpoonsActive = 1; // Default: 1 harpoon at a time
+        this.activeFixedHarpoon = null;
         this.isShooting = false;
 
         this.weaponType = HERO_WEAPON.HARPOON;
@@ -44,9 +48,19 @@ export class Hero extends HeroBase
         // cambio de arma
         this.key1 = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
         this.key2 = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
+        this.key3 = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.THREE);
+        this.key4 = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.FOUR);
 
         this.key1.on('down', () => this.setWeapon(HERO_WEAPON.HARPOON));
         this.key2.on('down', () => this.setWeapon(HERO_WEAPON.GUN));
+        this.key3.on('down', () => this.setWeapon(HERO_WEAPON.FIXED_HARPOON));
+        this.key4.on('down', () => {
+            // Toggle double harpoon upgrade
+            const newState = this.maxHarpoonsActive === 1;
+            this.setDoubleHarpoon(newState);
+            const status = newState ? 'ON (2 max)' : 'OFF (1 max)';
+            this.scene.game.events.emit('UI_WEAPON_CHANGE', `DOUBLE HARPOON: ${status}`);
+        });
 
         this.play('idle');
 
@@ -57,10 +71,14 @@ export class Hero extends HeroBase
     setWeapon(weaponType) {
         this.weaponType = weaponType;
 
-        const modeText = 
-            weaponType === HERO_WEAPON.GUN
-                ? 'MACHINE GUN'
-                : 'HARPOON';
+        let modeText;
+        if (weaponType === HERO_WEAPON.GUN) {
+            modeText = 'MACHINE GUN';
+        } else if (weaponType === HERO_WEAPON.FIXED_HARPOON) {
+            modeText = 'FIXED HARPOON';
+        } else {
+            modeText = 'HARPOON';
+        }
 
         this.scene.game.events.emit('UI_WEAPON_CHANGE', modeText);
     }
@@ -100,7 +118,14 @@ export class Hero extends HeroBase
         if (this.isShooting) return;
 
         if (this.weaponType === HERO_WEAPON.HARPOON) {
-            if (this.activeHarpoon && this.activeHarpoon.active) return;
+            // Clean up destroyed harpoons from array
+            this.activeHarpoons = this.activeHarpoons.filter(h => h && h.active);
+            // Check if we've reached the cap
+            if (this.activeHarpoons.length >= this.maxHarpoonsActive) return;
+        }
+
+        if (this.weaponType === HERO_WEAPON.FIXED_HARPOON) {
+            if (this.activeFixedHarpoon && this.activeFixedHarpoon.active) return;
         }
 
         this.isShooting = true;
@@ -109,6 +134,8 @@ export class Hero extends HeroBase
 
         if (this.weaponType === HERO_WEAPON.HARPOON) {
             this.shootHarpoon();
+        } else if (this.weaponType === HERO_WEAPON.FIXED_HARPOON) {
+            this.shootFixedHarpoon();
         } else {
             this.shootGunFan();
         }
@@ -119,7 +146,23 @@ export class Hero extends HeroBase
     }
 
     shootHarpoon() {
-        this.activeHarpoon = new Harpoon(this.scene, this.x, this.y);
+        // Calculate horizontal offset to prevent visual overlap when multiple harpoons exist
+        let offsetX = 0;
+        if (this.activeHarpoons.length > 0 && this.maxHarpoonsActive > 1) {
+            // Alternate left/right offset: first harpoon left, second right
+            offsetX = (this.activeHarpoons.length % 2 === 0) ? -15 : 15;
+        }
+        
+        // Use 'arpon' sprite when double harpoon is enabled, otherwise use default 'arponFijo'
+        const texture = this.maxHarpoonsActive > 1 ? 'arpon' : 'arponFijo';
+        
+        const harpoon = new Harpoon(this.scene, this.x + offsetX, this.y, texture);
+        this.activeHarpoons.push(harpoon);
+        this.scene.game.events.emit(EVENTS.hero.SHOOT);
+    }
+
+    shootFixedHarpoon() {
+        this.activeFixedHarpoon = new FixedHarpoon(this.scene, this.x, this.y);
         this.scene.game.events.emit(EVENTS.hero.SHOOT);
     }
 
@@ -194,6 +237,16 @@ export class Hero extends HeroBase
         this.scene.game.events.emit(EVENTS.hero.DIED);
         this.scene.game.events.emit(EVENTS.game.GAME_OVER);
         // Aquí puedes agregar lógica de muerte: animación, game over screen, etc.
+    }
+
+    /**
+     * Enable or disable Double Harpoon upgrade
+     * @param {boolean} enabled - True to enable double harpoon (2 max), false for normal (1 max)
+     */
+    setDoubleHarpoon(enabled) {
+        this.maxHarpoonsActive = enabled ? 2 : 1;
+        const status = enabled ? 'ENABLED' : 'DISABLED';
+        console.log(`Double Harpoon ${status} - Max harpoons: ${this.maxHarpoonsActive}`);
     }
 
     // ============================================================

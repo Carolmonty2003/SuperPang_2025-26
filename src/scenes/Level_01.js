@@ -47,6 +47,7 @@ export class Level_01 extends Phaser.Scene {
     // --- 5. ARMA ---
     this.load.setPath("assets/sprites/static");
     this.load.image("arponFijo", "arponFijo.png");
+    this.load.image("arpon", "arpon.png");
     this.load.image("bullet", "bullet.png");
 
     // --- 6. PELOTAS ---
@@ -266,19 +267,52 @@ export class Level_01 extends Phaser.Scene {
 
   update() {
     // Arpón rompiendo plataformas y pelotas
-    if (this.hero.activeHarpoon && this.hero.activeHarpoon.active) {
-      this.physics.overlap(
-        this.hero.activeHarpoon,
-        this.platforms,
-        this.onWeaponHitsPlatform,
+    if (this.hero.activeHarpoons && this.hero.activeHarpoons.length > 0) {
+      // Clean up destroyed harpoons
+      this.hero.activeHarpoons = this.hero.activeHarpoons.filter(h => h && h.active);
+      
+      // Check collision for each active harpoon
+      this.hero.activeHarpoons.forEach(harpoon => {
+        if (harpoon && harpoon.active) {
+          this.physics.overlap(
+            harpoon,
+            this.platforms,
+            this.onWeaponHitsPlatform,
+            null,
+            this
+          );
+
+          this.physics.overlap(
+            harpoon,
+            this.ballsGroup,
+            this.onWeaponHitsBall,
+            null,
+            this
+          );
+        }
+      });
+    }
+
+    // Arpón Fijo rompiendo pelotas
+    if (this.hero.activeFixedHarpoon && this.hero.activeFixedHarpoon.active) {
+      // Colisión con paredes para pegarse
+      this.physics.collide(
+        this.hero.activeFixedHarpoon,
+        this.walls,
+        (harpoon, tile) => {
+          if (harpoon && harpoon.onWallCollision) {
+            harpoon.onWallCollision();
+          }
+        },
         null,
         this
       );
-
+      
+      // Colisión con bolas
       this.physics.overlap(
-        this.hero.activeHarpoon,
+        this.hero.activeFixedHarpoon,
         this.ballsGroup,
-        this.onWeaponHitsBall,
+        this.onFixedHarpoonHitsBall,
         null,
         this
       );
@@ -303,6 +337,15 @@ export class Level_01 extends Phaser.Scene {
   onWeaponHitsBall(weapon, ball) {
     if (weapon && weapon.active && ball && ball.active) {
       if (weapon.destroy) weapon.destroy();
+      if (ball.takeDamage) ball.takeDamage();
+    }
+  }
+
+  onFixedHarpoonHitsBall(fixedHarpoon, ball) {
+    if (fixedHarpoon && fixedHarpoon.active && ball && ball.active) {
+      // Call the onBallHit method on the fixed harpoon to destroy it
+      if (fixedHarpoon.onBallHit) fixedHarpoon.onBallHit();
+      // Damage the ball
       if (ball.takeDamage) ball.takeDamage();
     }
   }
