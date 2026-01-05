@@ -1,4 +1,4 @@
-import { BaseItem } from './BaseItem.js';
+import { BaseItem } from '../BaseItem.js';
 
 /**
  * PowerUpLife - Extra Life Item
@@ -8,12 +8,15 @@ import { BaseItem } from './BaseItem.js';
  */
 export class PowerUpLife extends BaseItem {
   constructor(scene, x, y) {
-    super(scene, x, y, 'item_life', {
+    super(scene, x, y, 'bonus', {
       itemType: 'EXTRA_LIFE',
       ttl: 10000, // 10 seconds
       gravity: 450,
       bounce: 0.4
     });
+    
+    // Set to life frame (frame 8)
+    this.setFrame(8);
     
     // Add pulsing glow effect for heart
     this.scene.tweens.add({

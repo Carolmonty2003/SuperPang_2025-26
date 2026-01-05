@@ -1,11 +1,11 @@
 import { HeroBase } from './HeroBase.js';
-import { Harpoon } from './Harpoon.js';
-import { FixedHarpoon } from './FixedHarpoon.js';
-import { Bullet } from './Bullet.js';
+import { Harpoon } from './weapons/Harpoon.js';
+import { FixedHarpoon } from './weapons/FixedHarpoon.js';
+import { Bullet } from './weapons/Bullet.js';
 import { EVENTS } from '../core/events.js';
-import { WEAPON_LEVELS, MAX_WEAPON_LEVEL } from './items/drops/PowerUpWeapon.js';
-import { SHIELD_CONFIG } from './items/drops/PowerUpShield.js';
-import { SPEED_CONFIG } from './items/drops/PowerUpSpeed.js';
+import { WEAPON_LEVELS, MAX_WEAPON_LEVEL } from './items/powerups/PowerUpWeapon.js';
+import { SHIELD_CONFIG } from './items/powerups/PowerUpShield.js';
+import { SPEED_CONFIG } from './items/powerups/PowerUpSpeed.js';
 
 // tipos de arma
 export const HERO_WEAPON = {
@@ -188,7 +188,65 @@ export class Hero extends HeroBase
         // Si ya es invulnerable, no recibe daño
         if (this.isInvulnerable) return;
 
-        // Reducir vida
+        // SHIELD SYSTEM: Si tiene escudo, absorbe el golpe
+        if (this.hasShield) {
+            console.log('Shield blocked damage!');
+            
+            // El escudo se rompe
+            this.hasShield = false;
+            
+            // Cancelar timer del escudo si existe
+            if (this.shieldTimer) {
+                this.shieldTimer.destroy();
+                this.shieldTimer = null;
+            }
+            
+            // Detener pulsación del escudo
+            if (this._shieldPulse) {
+                this._shieldPulse.stop();
+                delete this._shieldPulse;
+            }
+            
+            // Mostrar efecto visual de escudo roto
+            this.showShieldBreakEffect();
+            
+            // Dar 1 segundo de invulnerabilidad después de romper el escudo
+            this.isInvulnerable = true;
+            
+            // Parpadeo amarillo (escudo roto)
+            const invulnDuration = SHIELD_CONFIG.INVULN_AFTER_BREAK || 1000;
+            const blinkInterval = 100;
+            let blinkCount = 0;
+            const maxBlinks = invulnDuration / blinkInterval;
+            
+            const blinkTimer = this.scene.time.addEvent({
+                delay: blinkInterval,
+                callback: () => {
+                    blinkCount++;
+                    // Alternar entre amarillo y transparente
+                    if (blinkCount % 2 === 0) {
+                        this.setTint(0xFFFF00);
+                        this.setAlpha(0.5);
+                    } else {
+                        this.clearTint();
+                        this.setAlpha(1);
+                    }
+                    
+                    if (blinkCount >= maxBlinks) {
+                        this.clearTint();
+                        this.setAlpha(1);
+                        this.isInvulnerable = false;
+                        blinkTimer.destroy();
+                    }
+                },
+                loop: true
+            });
+            
+            // NO pierde vida, el escudo lo protegió
+            return;
+        }
+
+        // NO SHIELD: Recibe daño normal
         this.lives -= amount;
         console.log(`Hero took ${amount} damage! Lives: ${this.lives}`);
 
@@ -228,6 +286,59 @@ export class Hero extends HeroBase
         // Verificar muerte
         if (this.lives <= 0) {
             this.die();
+        }
+    }
+
+    showShieldBreakEffect() {
+        // Efecto visual de escudo rompiéndose
+        const breakText = this.scene.add.text(
+            this.x,
+            this.y - 50,
+            'SHIELD BREAK!',
+            {
+                fontFamily: 'Arial',
+                fontSize: '18px',
+                color: '#FFFF00',
+                stroke: '#FF6600',
+                strokeThickness: 3
+            }
+        ).setOrigin(0.5);
+        
+        breakText.setDepth(100);
+        
+        this.scene.tweens.add({
+            targets: breakText,
+            y: breakText.y - 40,
+            alpha: 0,
+            duration: 1000,
+            ease: 'Cubic.easeOut',
+            onComplete: () => breakText.destroy()
+        });
+        
+        // Partículas de escudo roto (círculos cyan)
+        for (let i = 0; i < 8; i++) {
+            const angle = (Math.PI * 2 / 8) * i;
+            const particle = this.scene.add.circle(
+                this.x,
+                this.y - 30,
+                4,
+                0x00FFFF,
+                1
+            );
+            particle.setDepth(99);
+            
+            const targetX = this.x + Math.cos(angle) * 60;
+            const targetY = this.y - 30 + Math.sin(angle) * 60;
+            
+            this.scene.tweens.add({
+                targets: particle,
+                x: targetX,
+                y: targetY,
+                alpha: 0,
+                duration: 600,
+                ease: 'Cubic.easeOut',
+                onComplete: () => particle.destroy()
+            });
         }
     }
 

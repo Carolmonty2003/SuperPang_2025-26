@@ -1,31 +1,37 @@
-import { BaseItem } from './BaseItem.js';
+import { BaseItem } from '../BaseItem.js';
+import { ITEMS } from '../../../core/constants.js';
 
 /**
- * PowerUpShield - Timed Invulnerability Item
+ * PowerUpShield - One-Hit Protection Item
  * 
- * Grants temporary invulnerability to the player.
+ * Grants shield that absorbs one hit without taking damage.
  * 
- * DESIGN CHOICE: Timed Shield (5 seconds)
- * - Provides complete invulnerability for a fixed duration
+ * DESIGN CHOICE: One-Hit Shield (up to 30 seconds)
+ * - Blocks the next damage instance completely
+ * - After breaking, grants 1 second of invulnerability
+ * - Expires after 30 seconds if no hit is taken
  * - Does NOT stack (picking up multiple shields resets the timer)
  * - Visual indicator: cyan/blue glow around the hero
- * - Automatically reverts when duration expires
  */
 
 export const SHIELD_CONFIG = {
-  DURATION: 5000, // 5 seconds of invulnerability
+  DURATION: ITEMS.DURATION.SHIELD, // 30 seconds shield duration
+  INVULN_AFTER_BREAK: ITEMS.DURATION.SHIELD_INVULN_AFTER_BREAK, // 1 second invuln after break
   BLINK_INTERVAL: 200, // Visual feedback interval
   TINT_COLOR: 0x00FFFF // Cyan shield tint
 };
 
 export class PowerUpShield extends BaseItem {
   constructor(scene, x, y) {
-    super(scene, x, y, 'item_shield', {
+    super(scene, x, y, 'bonus', {
       itemType: 'SHIELD',
       ttl: 8000, // 8 seconds before despawn
       gravity: 400,
       bounce: 0.5
     });
+    
+    // Set to shield frame (frame 3)
+    this.setFrame(3);
     
     // Add shield visual effect (spinning shield icon)
     this.scene.tweens.add({
@@ -92,15 +98,15 @@ export class PowerUpShield extends BaseItem {
       hero.shieldTimer.destroy();
     }
     
-    // Enable shield
+    // Enable shield (one-hit protection)
     hero.hasShield = true;
-    hero.isInvulnerable = true;
+    // NOT invulnerable - shield will break on first hit
     
     // Visual feedback: cyan glow
     hero.setTint(SHIELD_CONFIG.TINT_COLOR);
     
     // Add pulsing effect
-    const shieldPulse = this.scene.tweens.add({
+    hero._shieldPulse = this.scene.tweens.add({
       targets: hero,
       alpha: { from: 1, to: 0.7 },
       duration: SHIELD_CONFIG.BLINK_INTERVAL,
@@ -108,18 +114,22 @@ export class PowerUpShield extends BaseItem {
       repeat: -1
     });
     
-    // Set timer to remove shield
+    // Set timer to auto-expire shield after 30 seconds if not hit
     hero.shieldTimer = this.scene.time.delayedCall(SHIELD_CONFIG.DURATION, () => {
-      hero.hasShield = false;
-      hero.isInvulnerable = false;
-      hero.clearTint();
-      hero.setAlpha(1);
-      shieldPulse.stop();
-      hero.shieldTimer = null;
-      
-      console.log('Shield expired');
+      if (hero.hasShield) {
+        hero.hasShield = false;
+        hero.clearTint();
+        hero.setAlpha(1);
+        if (hero._shieldPulse) {
+          hero._shieldPulse.stop();
+          delete hero._shieldPulse;
+        }
+        hero.shieldTimer = null;
+        
+        console.log('Shield expired naturally after 30 seconds');
+      }
     });
     
-    console.log(`Shield activated for ${SHIELD_CONFIG.DURATION}ms`);
+    console.log(`Shield activated - will block 1 hit for up to ${SHIELD_CONFIG.DURATION / 1000} seconds`);
   }
 }

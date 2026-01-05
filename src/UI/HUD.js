@@ -53,6 +53,18 @@ export class Hud {
       })
       .setOrigin(0, 1); // anclado por abajo, justo encima de los iconos
 
+    // Texto para vidas extra (x{número}) - oculto inicialmente
+    this.extraLivesText = scene.add
+      .text(baseX + (iconsToCreate * spacing) + 10, iconY, '', {
+        fontFamily: 'Arial',
+        fontSize: '24px',
+        color: '#ffff00',
+        stroke: '#000000',
+        strokeThickness: 2
+      })
+      .setOrigin(0, 1)
+      .setVisible(false);
+
     // ==========================
     //   TEXTO DE MODO
     // ==========================
@@ -134,6 +146,16 @@ export class Hud {
     this.lifeIcons.forEach((icon, index) => {
       icon.setVisible(index < visibleIcons);
     });
+
+    // Si tiene más de 3 vidas, mostrar el contador de vidas extra
+    // Ejemplo: 5 vidas = 2 iconos visibles + "x3" (porque 5 - 2 = 3)
+    if (value > 3) {
+      const extraLives = value - 2; // Total de vidas menos las 2 mostradas como iconos
+      this.extraLivesText.setText(`x${extraLives}`);
+      this.extraLivesText.setVisible(true);
+    } else {
+      this.extraLivesText.setVisible(false);
+    }
   }
 
   // ===== MODO ARMA =====
@@ -157,6 +179,7 @@ export class Hud {
     this.background?.destroy();
     this.playerLabel?.destroy();
     this.lifeIcons?.forEach((icon) => icon.destroy());
+    this.extraLivesText?.destroy();
     this.modeText?.destroy();
     this.scoreText?.destroy();
   }

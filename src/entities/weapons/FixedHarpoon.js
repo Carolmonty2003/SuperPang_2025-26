@@ -1,6 +1,6 @@
-// src/entities/FixedHarpoon.js
+// src/entities/weapons/FixedHarpoon.js
 
-import { WEAPON } from '../core/constants.js';
+import { WEAPON } from '../../core/constants.js';
 
 export class FixedHarpoon extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y, texture = 'arponFijo') {

@@ -19,23 +19,39 @@
  * ```
  */
 
-import { ScoreBonus, SCORE_VARIANT } from './drops/ScoreBonus.js';
-import { PowerUpLife } from './drops/PowerUpLife.js';
-import { PowerUpShield } from './drops/PowerUpShield.js';
-import { PowerUpSpeed } from './drops/PowerUpSpeed.js';
-import { PowerUpWeapon } from './drops/PowerUpWeapon.js';
+import { Fruits, FRUIT_VARIANT } from './Fruits.js';
+import { PowerUpLife } from './powerups/PowerUpLife.js';
+import { PowerUpShield } from './powerups/PowerUpShield.js';
+import { PowerUpSpeed } from './powerups/PowerUpSpeed.js';
+import { PowerUpWeapon } from './powerups/PowerUpWeapon.js';
+import { WeaponTempDouble } from './powerups/WeaponTempDouble.js';
+import { WeaponTempMachine } from './powerups/WeaponTempMachine.js';
+import { WeaponTempFixed } from './powerups/WeaponTempFixed.js';
+import { PowerUpBomb } from './powerups/PowerUpBomb.js';
+import { PowerUpTimeFreeze } from './powerups/PowerUpTimeFreeze.js';
+import { PowerUpTimeSlow } from './powerups/PowerUpTimeSlow.js';
 
 // Default loot table with weighted probabilities
 export const DEFAULT_LOOT_TABLE = [
-  { type: 'SCORE_BONUS', weight: 40, variant: 'SMALL' },    // 40% - Small fruit (100 pts)
-  { type: 'SCORE_BONUS', weight: 25, variant: 'MEDIUM' },   // 25% - Medium fruit (250 pts)
-  { type: 'SCORE_BONUS', weight: 15, variant: 'LARGE' },    // 15% - Large fruit (500 pts)
-  { type: 'SCORE_BONUS', weight: 5, variant: 'SPECIAL' },   // 5% - Special fruit (1000 pts)
+  // Fruits (85 weight total)
+  { type: 'FRUITS', weight: 40, variant: 'SMALL' },         // 40% - Small fruit (100 pts)
+  { type: 'FRUITS', weight: 25, variant: 'MEDIUM' },        // 25% - Medium fruit (250 pts)
+  { type: 'FRUITS', weight: 15, variant: 'LARGE' },         // 15% - Large fruit (500 pts)
+  { type: 'FRUITS', weight: 5, variant: 'SPECIAL' },        // 5% - Special fruit (1000 pts)
+  
+  // Temporary weapons (18 weight total)
+  { type: 'WEAPON_TEMP_DOUBLE', weight: 7 },                // 7% - Double harpoon (15s)
+  { type: 'WEAPON_TEMP_MACHINE', weight: 6 },               // 6% - Machine gun (15s)
+  { type: 'WEAPON_TEMP_FIXED', weight: 5 },                 // 5% - Fixed harpoon (15s)
+  
+  // Power-ups (25 weight total)
   { type: 'POWER_UP_SPEED', weight: 8 },                    // 8% - Speed boost
-  { type: 'POWER_UP_WEAPON', weight: 5 },                   // 5% - Weapon upgrade
-  { type: 'POWER_UP_SHIELD', weight: 3 },                   // 3% - Shield
-  { type: 'POWER_UP_LIFE', weight: 2 }                      // 2% - Extra life (rare)
-  // Total: 103 weight units
+  { type: 'POWER_UP_SHIELD', weight: 6 },                   // 6% - Shield (1 hit)
+  { type: 'POWER_UP_BOMB', weight: 4 },                     // 4% - Bomb (clear screen)
+  { type: 'TIME_FREEZE', weight: 3 },                       // 3% - Time freeze
+  { type: 'TIME_SLOW', weight: 3 },                         // 3% - Slow motion
+  { type: 'POWER_UP_LIFE', weight: 1 }                      // 1% - Extra life (very rare)
+  // Total: 128 weight units
 ];
 
 export const DROPPER_CONFIG = {
@@ -61,8 +77,12 @@ export class Dropper {
     this.maxItems = config.maxItems !== undefined ? config.maxItems : DROPPER_CONFIG.MAX_ITEMS_ON_SCREEN;
     this.dropChance = config.dropChance !== undefined ? config.dropChance : DROPPER_CONFIG.DROP_CHANCE;
     
-    // Active items tracking
-    this.activeItems = [];
+    // Active items tracking - usando un grupo de física para colisiones
+    this.activeItems = scene.physics.add.group({
+      collideWorldBounds: true,
+      bounceX: 0,
+      bounceY: 0
+    });
     
     // Calculate total weight for probability distribution
     this.totalWeight = this.lootTable.reduce((sum, entry) => sum + entry.weight, 0);
@@ -90,7 +110,7 @@ export class Dropper {
     }
     
     // Check max items limit
-    if (this.activeItems.length >= this.maxItems) {
+    if (this.activeItems.getLength() >= this.maxItems) {
       console.log('Drop cancelled: max items on screen');
       return null;
     }
@@ -123,15 +143,12 @@ export class Dropper {
       
       item.body.setVelocity(velX, velY);
       
-      // Track active item
-      this.activeItems.push(item);
+      // Track active item - añadir al grupo de física
+      this.activeItems.add(item);
       
       // Remove from tracking when destroyed
       item.once('destroy', () => {
-        const index = this.activeItems.indexOf(item);
-        if (index > -1) {
-          this.activeItems.splice(index, 1);
-        }
+        this.activeItems.remove(item, true);
       });
       
       console.log(`Dropped ${itemType}${variant ? ` (${variant})` : ''} at (${x}, ${y})`);
@@ -169,8 +186,8 @@ export class Dropper {
    */
   createItem(itemType, x, y, variant) {
     switch (itemType) {
-      case 'SCORE_BONUS':
-        return new ScoreBonus(this.scene, x, y, variant || 'MEDIUM');
+      case 'FRUITS':
+        return new Fruits(this.scene, x, y, variant || 'MEDIUM');
       
       case 'POWER_UP_LIFE':
         return new PowerUpLife(this.scene, x, y);
@@ -183,6 +200,24 @@ export class Dropper {
       
       case 'POWER_UP_WEAPON':
         return new PowerUpWeapon(this.scene, x, y);
+      
+      case 'WEAPON_TEMP_DOUBLE':
+        return new WeaponTempDouble(this.scene, x, y);
+      
+      case 'WEAPON_TEMP_MACHINE':
+        return new WeaponTempMachine(this.scene, x, y);
+      
+      case 'WEAPON_TEMP_FIXED':
+        return new WeaponTempFixed(this.scene, x, y);
+      
+      case 'POWER_UP_BOMB':
+        return new PowerUpBomb(this.scene, x, y);
+      
+      case 'TIME_FREEZE':
+        return new PowerUpTimeFreeze(this.scene, x, y);
+      
+      case 'TIME_SLOW':
+        return new PowerUpTimeSlow(this.scene, x, y);
       
       default:
         console.warn(`Unknown item type: ${itemType}`);
@@ -213,25 +248,18 @@ export class Dropper {
    */
   update(hero) {
     // Check each active item for pickup
-    for (let i = this.activeItems.length - 1; i >= 0; i--) {
-      const item = this.activeItems[i];
-      
+    this.activeItems.getChildren().forEach(item => {
       if (item && item.active) {
         item.checkPickup(hero);
       }
-    }
+    });
   }
 
   /**
    * Clear all active items (for level transitions, etc.)
    */
   clearAll() {
-    this.activeItems.forEach(item => {
-      if (item && item.active) {
-        item.destroy();
-      }
-    });
-    this.activeItems = [];
+    this.activeItems.clear(true, true); // Remove and destroy all items
   }
 
   /**
@@ -239,7 +267,7 @@ export class Dropper {
    * @returns {number}
    */
   getActiveItemCount() {
-    return this.activeItems.length;
+    return this.activeItems.getLength();
   }
 
   /**

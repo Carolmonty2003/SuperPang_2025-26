@@ -8,6 +8,7 @@ import { HugeBall } from "../entities/enemies/balls/normal/HugeBall.js";
 import { TinyBall } from "../entities/enemies/balls/normal/TinyBall.js";
 import { HexBigBall } from "../entities/enemies/balls/hexagonal/HexBigBall.js";
 import { BALL_COLORS } from "../entities/enemies/balls/BallConstants.js";
+import { Dropper } from "../entities/items/Dropper.js";
 
 export class Level_01 extends Phaser.Scene {
   constructor() {
@@ -72,6 +73,13 @@ export class Level_01 extends Phaser.Scene {
     this.load.spritesheet("hex_small", "hex_small.png", {
       frameWidth: 33 / 3,
       frameHeight: 10
+    });
+
+    // --- 8. POWER-UPS (BONUS SPRITESHEET) ---
+    this.load.setPath("assets/sprites/static");
+    this.load.spritesheet("bonus", "bonus.png", {
+      frameWidth: 20,
+      frameHeight: 20
     });
   }
 
@@ -167,6 +175,37 @@ export class Level_01 extends Phaser.Scene {
 
     // --- PELOTA INICIAL ---
     this.createBall();
+
+    // --- DROPPER (SISTEMA DE ITEMS) ---
+    this.dropper = new Dropper(this, {
+      dropChance: 0.5, // 50% de probabilidad de drop (puedes ajustar)
+      maxItems: 8
+    });
+
+    // --- COLISIONES ITEMS (sin rebote) ---
+    // Los items colisionan con paredes y plataformas pero no rebotan
+    this.physics.add.collider(this.dropper.activeItems, this.walls);
+    this.physics.add.collider(this.dropper.activeItems, this.platforms);
+
+    // ===== TEST MODE: DROPEAR ITEMS PARA PROBAR =====
+    this.time.delayedCall(500, () => {
+      // Fila superior - Power-ups
+      this.dropper.dropFrom(null, 300, 200, { itemType: 'POWER_UP_SHIELD', guaranteed: true });
+      this.dropper.dropFrom(null, 450, 200, { itemType: 'POWER_UP_LIFE', guaranteed: true });
+      this.dropper.dropFrom(null, 600, 200, { itemType: 'POWER_UP_SPEED', guaranteed: true });
+      this.dropper.dropFrom(null, 750, 200, { itemType: 'POWER_UP_BOMB', guaranteed: true });
+      
+      // Fila media - Armas temporales
+      this.dropper.dropFrom(null, 300, 400, { itemType: 'WEAPON_TEMP_DOUBLE', guaranteed: true });
+      this.dropper.dropFrom(null, 500, 400, { itemType: 'WEAPON_TEMP_MACHINE', guaranteed: true });
+      this.dropper.dropFrom(null, 700, 400, { itemType: 'WEAPON_TEMP_FIXED', guaranteed: true });
+      
+      // Fila inferior - Tiempo y frutas
+      this.dropper.dropFrom(null, 350, 600, { itemType: 'TIME_FREEZE', guaranteed: true });
+      this.dropper.dropFrom(null, 550, 600, { itemType: 'TIME_SLOW', guaranteed: true });
+      this.dropper.dropFrom(null, 750, 600, { itemType: 'FRUITS', guaranteed: true });
+    });
+    // ===== FIN TEST MODE =====
 
     // --- HUD ---
     this.hud = new Hud(this, {
@@ -320,6 +359,15 @@ export class Level_01 extends Phaser.Scene {
 
     // Balas destruyendo pelotas
     this.physics.overlap(this.bullets, this.ballsGroup, this.onWeaponHitsBall, null, this);
+
+    // CHECK ITEM PICKUPS
+    if (this.dropper && this.dropper.activeItems) {
+      this.dropper.activeItems.getChildren().forEach(item => {
+        if (item && item.active && !item.consumed) {
+          item.checkPickup(this.hero);
+        }
+      });
+    }
   }
 
   onWeaponHitsPlatform(weapon, tile) {
@@ -330,7 +378,7 @@ export class Level_01 extends Phaser.Scene {
       platform.break(weapon);
       this.platformObjects.delete(key);
     }
-
+      
     if (weapon && weapon.active && weapon.destroy) weapon.destroy();
   }
 

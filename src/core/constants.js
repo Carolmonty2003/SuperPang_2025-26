@@ -67,7 +67,13 @@ export const ITEMS = {
         POWER_UP_LIFE: 10000,
         POWER_UP_SHIELD: 8000,
         POWER_UP_SPEED: 9000,
-        POWER_UP_WEAPON: 7000
+        POWER_UP_WEAPON: 7000,
+        WEAPON_TEMP_DOUBLE: 7000,
+        WEAPON_TEMP_MACHINE: 7000,
+        WEAPON_TEMP_FIXED: 7000,
+        BOMB: 9000,
+        TIME_FREEZE: 8000,
+        TIME_SLOW: 8000
     },
     
     // Score bonus values
@@ -80,13 +86,18 @@ export const ITEMS = {
     
     // Power-up durations
     DURATION: {
-        SHIELD: 5000,      // 5 seconds invulnerability
-        SPEED_BOOST: 8000  // 8 seconds speed boost
+        SHIELD: 30000,      // 30 seconds shield duration
+        SHIELD_INVULN_AFTER_BREAK: 1000, // 1 second invuln after shield breaks
+        SPEED_BOOST: 8000,  // 8 seconds speed boost
+        WEAPON_TEMP: 15000, // 15 seconds temporary weapon
+        TIME_FREEZE: 10000, // 10 seconds time freeze
+        TIME_SLOW: 12000    // 12 seconds slow motion
     },
     
     // Power-up multipliers
     MULTIPLIER: {
-        SPEED: 1.5 // 50% speed increase
+        SPEED: 1.5, // 50% speed increase
+        SLOW_MOTION: 0.4 // 40% speed (60% slower)
     }
 };
 

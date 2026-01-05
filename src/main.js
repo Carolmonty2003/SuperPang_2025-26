@@ -17,20 +17,15 @@ import Level_01 from "./scenes/Level_01.js";
 //import { level2 } from "./scenes/level2.js";
 //import { Hud } from "./scenes/hud.js";
 
-const scenes = new Phaser.Game
-(
-    buildConfig({
-        scenes: [
-            //Boot, // si hay una escena de carga
-            MainMenuScene,
-            SelectModeScene,
-            OptionsMenu,
-            PauseMenu,
-            Level1,
-            Level_01,
-            /*, level2, Hud*/
-        ],
-    })
-);
-
-const game = new Phaser.Game(buildConfig({ scenes }));
+const game = new Phaser.Game(buildConfig({
+    scenes: [
+        //Boot, // si hay una escena de carga
+        MainMenuScene,
+        SelectModeScene,
+        OptionsMenu,
+        PauseMenu,
+        Level1,
+        Level_01,
+        /*, level2, Hud*/
+    ]
+}));

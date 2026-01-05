@@ -35,22 +35,29 @@ export class BaseItem extends Phaser.Physics.Arcade.Sprite {
 
     // Configuration with defaults
     this.itemType = config.itemType || 'unknown';
-    this.ttl = config.ttl !== undefined ? config.ttl : 10000; // 10 seconds default
+    this.ttl = config.ttl !== undefined ? config.ttl : 0; // 0 = infinite (no TTL)
     this.originalTTL = this.ttl;
     
     // State management
     this.active = true;
     this.consumed = false;
     
-    // Configure physics
-    this.body.setGravityY(config.gravity !== undefined ? config.gravity : 600);
-    this.body.setBounce(config.bounce !== undefined ? config.bounce : 0.5);
+    // Configure physics - caída suave y sin rebote
+    this.body.setGravityY(config.gravity !== undefined ? config.gravity : 200);
+    this.body.setBounce(0); // Sin rebote - se quedan estáticos
     this.body.setCollideWorldBounds(true);
+    this.body.setAllowRotation(false); // Sin rotación física
+    this.body.setAngularVelocity(0);
+    this.body.setAngularAcceleration(0);
     
     // Set initial velocity
     const velX = config.initialVelocityX !== undefined ? config.initialVelocityX : 0;
     const velY = config.initialVelocityY !== undefined ? config.initialVelocityY : 100;
     this.body.setVelocity(velX, velY);
+    
+    // Sprite fijo sin rotación
+    this.setRotation(0);
+    this.setAngularVelocity(0);
     
     // Visual effects - subtle glow/pulse
     this.createVisualEffects();

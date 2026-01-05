@@ -1,4 +1,4 @@
-// src/entities/bullet.js (ajusta la ruta al tuyo)
+// src/entities/weapons/Bullet.js
 
 export class Bullet extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y, texture = 'bullet') {

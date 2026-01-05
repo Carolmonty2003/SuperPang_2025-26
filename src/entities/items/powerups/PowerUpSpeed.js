@@ -1,4 +1,4 @@
-import { BaseItem } from './BaseItem.js';
+import { BaseItem } from '../BaseItem.js';
 
 /**
  * PowerUpSpeed - Speed Boost Item
