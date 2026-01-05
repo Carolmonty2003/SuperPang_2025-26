@@ -9,7 +9,7 @@
 export const BIRD_SCORE = 150; // Points for hitting a bird
 
 // Bird speed (horizontal velocity)
-export const BIRD_SPEED = 700; // Fast flight speed
+export const BIRD_SPEED = 800; // Fast flight speed
 
 // Bird spawn heights (Y positions for entry)
 export const BIRD_SPAWN_HEIGHTS = {

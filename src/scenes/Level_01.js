@@ -86,7 +86,7 @@ export class Level_01 extends Phaser.Scene {
       frameHeight: 20
     });
 
-    // --- 8. PAJAROS --- TEMPORAAAAAAAAAAAAAAAAAAAAAAAL
+    // --- 9. PAJAROS --- TEMPORAAAAAAAAAAAAAAAAAAAAAAAL-------------------------------------------
     // --- 8. BIRDS (ADD THIS SECTION) ---
     this.load.setPath("assets/sprites/spritesheets/enemies");
     
