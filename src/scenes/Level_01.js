@@ -13,6 +13,9 @@ import { Dropper } from "../entities/items/Dropper.js";
 //test temporal pajaros
 import { SmallBird } from "../entities/enemies/birds/SmallBird.js";
 import { BIRD_SPAWN_HEIGHTS, BIRD_COLORS } from "../entities/enemies/birds/BirdConstants.js";
+//TEST TEMPORAL COCODRILOS
+import { Crocodile } from "../entities/enemies/crocodiles/Crocodile.js";
+import { CROCODILE_COLORS } from "../entities/enemies/crocodiles/CrocodileConstants.js";
 
 export class Level_01 extends Phaser.Scene {
   constructor() {
@@ -92,6 +95,14 @@ export class Level_01 extends Phaser.Scene {
     
     // Option A: Single images (simplest - no animation)
     this.load.image("bird_small", "bird_small.png");
+
+    // --- 10. COCODRILOS (ADD THIS SECTION) --------------------------------------------------------------
+    // COCODRILOS
+    this.load.setPath("assets/sprites/spritesheets/enemies");
+    this.load.spritesheet("crocodile", "crocodile.png", {
+      frameWidth: 118,   // 590 ÷ 5 = 118 píxeles por frame
+      frameHeight: 127    // Alto de la imagen
+    });
   }
 
   create() {
@@ -273,6 +284,39 @@ export class Level_01 extends Phaser.Scene {
       this.spawnBird('SMALL', this.hero.x, 200, 1);
       console.log('Debug: Bird spawned at hero position');
     });
+
+    // --- COCODRILO TESTING ----------------------------------------------------------------------------------------------
+    // Crear grupo de cocodrilos
+    this.crocodilesGroup = this.physics.add.group();
+    
+    // Colisiones
+    this.physics.add.collider(
+      this.crocodilesGroup,
+      this.walls
+    );
+
+    this.physics.add.collider(
+      this.crocodilesGroup,
+      this.platforms
+    );
+
+    this.physics.add.overlap(
+      this.crocodilesGroup,
+      this.hero,
+      this.onPlayerHitsCrocodile,
+      null,
+      this
+    );
+    
+    // ============================================================
+    // DEBUG KEY: V para spawnear cocodrilo
+    // ============================================================
+    this.input.keyboard.on('keydown-V', () => {
+      // Spawn cerca del héroe
+      const groundY = 700; // Ajusta según tu mapa
+      this.spawnCrocodile(this.hero.x, groundY);
+      console.log('Debug: Spawned crocodile with V key');
+    });
   }
 
     /**
@@ -340,6 +384,50 @@ export class Level_01 extends Phaser.Scene {
     }
   }//------------------------------------------------------------------------------------------------------------------------------
 
+   //cocodrile----------------------------------------------------------------------------------------------------------+
+  /**
+   * Spawn un cocodrilo
+   */
+  spawnCrocodile(x, y) {
+    const croc = new Crocodile(this, x, y);
+    
+    this.crocodilesGroup.add(croc);
+    console.log(`Spawned crocodile at (${x}, ${y})`);
+    return croc;
+  }
+
+  /**
+   * Player choca con cocodrilo
+   * Solo empuja si está stunned, no hace daño
+   */
+  onPlayerHitsCrocodile(hero, croc) {
+    if (!croc || !croc.active) return;
+    
+    // Solo lanzar si el cocodrilo está aturdido
+    if (croc.state === 'STUNNED') {
+      console.log('Player hit stunned crocodile, launching!');
+      croc.launchFlying(hero.x);
+    }
+    // Si no está stunned, no hace nada (no daña al player)
+  }
+
+  /**
+   * Arma golpea cocodrilo - lo aturde
+   */
+  onWeaponHitsCrocodile(weapon, croc) {
+    if (!weapon || !weapon.active) return;
+    if (!croc || !croc.active || croc.isDead) return;
+    
+    console.log('Weapon hit crocodile!');
+    
+    // Destruir arma
+    if (weapon.destroy) weapon.destroy();
+    
+    // Aturdir cocodrilo
+    if (croc.takeDamage) croc.takeDamage();
+  }
+  //--------------------------------------------------------------------------------------------------------------------
+  
   createPlatformObjects() {
     this.platformObjects.clear();
 
@@ -531,6 +619,43 @@ export class Level_01 extends Phaser.Scene {
       null,
       this
     );//--------------------------------------------------------------------------------------------------------------
+
+    // --- UPDATE CROCODILES ----------------------------------------------------------------------------------------------
+     // Harpoons vs crocodiles
+    if (this.hero.activeHarpoons && this.hero.activeHarpoons.length > 0) {
+      this.hero.activeHarpoons.forEach(harpoon => {
+        if (harpoon && harpoon.active) {
+          this.physics.overlap(
+            harpoon,
+            this.crocodilesGroup,
+            this.onWeaponHitsCrocodile,
+            null,
+            this
+          );
+        }
+      });
+    }
+    
+    // Fixed harpoon vs crocodiles
+    if (this.hero.activeFixedHarpoon && this.hero.activeFixedHarpoon.active) {
+      this.physics.overlap(
+        this.hero.activeFixedHarpoon,
+        this.crocodilesGroup,
+        this.onWeaponHitsCrocodile,
+        null,
+        this
+      );
+    }
+    
+    // Bullets vs crocodiles
+    this.physics.overlap(
+      this.bullets,
+      this.crocodilesGroup,
+      this.onWeaponHitsCrocodile,
+      null,
+      this
+    );
+    //--------------------------------------------------------------------------------------------------------------
   }
 
     /**
@@ -547,6 +672,8 @@ export class Level_01 extends Phaser.Scene {
       if (bird.takeDamage) bird.takeDamage();
     }//----------------------------------------------------------------------------------------------------------
   }
+
+ 
 
   onWeaponHitsPlatform(weapon, tile) {
     const key = `${tile.x}_${tile.y}`;
@@ -578,4 +705,3 @@ export class Level_01 extends Phaser.Scene {
 }
 
 export default Level_01;
-0
