@@ -14,8 +14,7 @@ export class Crocodile extends BaseCrocodile {
     
     super(scene, x, y, 'crocodile', speed, scoreValue);
     
-    // Crocodile-specific scale
-    this.setScale(2, 2);
+    // NO setScale aquí - ya se hace en BaseCrocodile
     
     // Adjust hitbox
     const hitboxWidth = this.width * 0.7;
@@ -23,7 +22,7 @@ export class Crocodile extends BaseCrocodile {
     this.body.setSize(hitboxWidth, hitboxHeight);
     this.body.setOffset(
       (this.width - hitboxWidth) / 2,
-      (this.height - hitboxHeight) / 2
+      (this.height - hitboxHeight) / 2 + 10
     );
   }
 }

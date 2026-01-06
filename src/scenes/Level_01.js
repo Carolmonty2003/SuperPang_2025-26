@@ -96,7 +96,13 @@ export class Level_01 extends Phaser.Scene {
     // Option A: Single images (simplest - no animation)
     this.load.image("bird_small", "bird_small.png");
 
-
+    // --- 10. COCODRILOS (ADD THIS SECTION) --------------------------------------------------------------
+    // COCODRILOS
+    this.load.setPath("assets/sprites/spritesheets/enemies");
+    this.load.spritesheet("crocodile", "crocodile.png", {
+      frameWidth: 118,   // 590 ÷ 5 = 118 píxeles por frame
+      frameHeight: 127    // Alto de la imagen
+    });
   }
 
   create() {
@@ -280,10 +286,6 @@ export class Level_01 extends Phaser.Scene {
     });
 
     // --- COCODRILO TESTING ----------------------------------------------------------------------------------------------
-
-     // Crear placeholder sprite
-    this.createCrocodilePlaceholder();
-    
     // Crear grupo de cocodrilos
     this.crocodilesGroup = this.physics.add.group();
     
@@ -306,20 +308,13 @@ export class Level_01 extends Phaser.Scene {
       this
     );
     
-    this.physics.add.overlap(
-      this.crocodilesGroup,
-      this.hero,
-      this.onPlayerHitsCrocodile,
-      null,
-      this
-    );
-    
     // ============================================================
     // DEBUG KEY: V para spawnear cocodrilo
     // ============================================================
     this.input.keyboard.on('keydown-V', () => {
       // Spawn cerca del héroe
-      this.spawnCrocodile(this.hero.x + 100, this.physics.world.bounds.height - 80);
+      const groundY = 700; // Ajusta según tu mapa
+      this.spawnCrocodile(this.hero.x, groundY);
       console.log('Debug: Spawned crocodile with V key');
     });
   }
@@ -391,41 +386,12 @@ export class Level_01 extends Phaser.Scene {
 
    //cocodrile----------------------------------------------------------------------------------------------------------+
   /**
-   * Crear sprite placeholder de cocodrilo
-   */
-  createCrocodilePlaceholder() {
-    const graphics = this.add.graphics();
-    
-    // Cocodrilo: rectángulo verde con ojos
-    graphics.fillStyle(0x00AA00); // Verde oscuro
-    graphics.fillRect(0, 8, 48, 24); // Cuerpo
-    
-    // Ojos
-    graphics.fillStyle(0x000000); // Negro
-    graphics.fillCircle(12, 16, 3); // Ojo izquierdo
-    graphics.fillCircle(36, 16, 3); // Ojo derecho
-    
-    // Generar textura
-    graphics.generateTexture('crocodile', 48, 32);
-    graphics.clear();
-    graphics.destroy();
-    
-    console.log('✅ Crocodile placeholder created');
-  }
-
-  /**
    * Spawn un cocodrilo
    */
   spawnCrocodile(x, y) {
     const croc = new Crocodile(this, x, y);
     
-    // Color aleatorio (opcional)
-    const colors = Object.values(CROCODILE_COLORS);
-    const randomColor = Phaser.Utils.Array.GetRandom(colors);
-    croc.setTint(randomColor);
-    
     this.crocodilesGroup.add(croc);
-    
     console.log(`Spawned crocodile at (${x}, ${y})`);
     return croc;
   }
