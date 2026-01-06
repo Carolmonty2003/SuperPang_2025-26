@@ -21,27 +21,8 @@ export class WeaponTempFixed extends BaseItem {
     // Set to fixed harpoon frame (frame 2)
     this.setFrame(2);
     
-    // Purple visual effect
+    // Purple visual effect (sin animaciones que sobrescriben BaseItem)
     this.setTint(0xAA00FF);
-    
-    // Pulsing animation
-    this.scene.tweens.add({
-      targets: this,
-      scale: { from: 1.0, to: 1.2 },
-      duration: 550,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
-    });
-    
-    // Slow rotation
-    this.scene.tweens.add({
-      targets: this,
-      angle: -360,
-      duration: 2500,
-      repeat: -1,
-      ease: 'Linear'
-    });
   }
 
   /**
@@ -89,9 +70,10 @@ export class WeaponTempFixed extends BaseItem {
     // Notify HUD
     this.scene.game.events.emit('UI_WEAPON_CHANGE', 'FIXED HARPOON');
     
-    // Set timer to revert weapon
-    hero._tempWeaponTimer = this.scene.time.delayedCall(ITEMS.DURATION.WEAPON_TEMP, () => {
-      this.revertWeapon(hero);
+    // Set timer to revert weapon - guardar referencia a scene
+    const scene = this.scene;
+    hero._tempWeaponTimer = scene.time.delayedCall(ITEMS.DURATION.WEAPON_TEMP, () => {
+      this.revertWeapon(hero, scene);
     });
     
     console.log('Temporary fixed harpoon activated for', ITEMS.DURATION.WEAPON_TEMP / 1000, 'seconds');
@@ -100,8 +82,9 @@ export class WeaponTempFixed extends BaseItem {
   /**
    * Revert to original weapon
    * @param {Hero} hero - The hero
+   * @param {Phaser.Scene} scene - The scene reference
    */
-  revertWeapon(hero) {
+  revertWeapon(hero, scene) {
     if (hero._originalWeapon !== undefined) {
       hero.weaponType = hero._originalWeapon;
       delete hero._originalWeapon;
@@ -119,7 +102,7 @@ export class WeaponTempFixed extends BaseItem {
     delete hero._tempWeaponTimer;
     
     // Notify HUD
-    this.scene.game.events.emit('UI_WEAPON_CHANGE', 'HARPOON');
+    scene.game.events.emit('UI_WEAPON_CHANGE', 'HARPOON');
     
     console.log('Temporary weapon expired, reverted to normal');
   }

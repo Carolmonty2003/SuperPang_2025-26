@@ -26,7 +26,7 @@ export class BaseBall extends Phaser.Physics.Arcade.Sprite {
     );
 
     // Escalar después para que el sprite llene el collider
-    this.setScale(2, 2);
+    this.setScale(2.0, 2.0);
 
     // Aplicar color
     this.setTint(this.ballColor);
@@ -34,7 +34,7 @@ export class BaseBall extends Phaser.Physics.Arcade.Sprite {
     // Física - rebote perfecto
     this.body.setBounce(1, 1); // (bounceX, bounceY) - ambos al 100%
     this.body.setCollideWorldBounds(true);
-    this.body.setGravityY(300);
+    this.body.setGravityY(200);
     
     // Asegurar que la bola pueda moverse
     this.body.immovable = false;
@@ -42,7 +42,7 @@ export class BaseBall extends Phaser.Physics.Arcade.Sprite {
     
     // Eliminar drag y fricción para que no pierda energía
     this.body.setDrag(0, 0);
-    this.body.setMaxVelocity(10000, 10000); // Limitar para evitar atravesar tiles
+    this.body.setMaxVelocity(400, 400); // Limitar para evitar atravesar tiles
     this.body.allowGravity = true;
     
     // Habilitar collision faces en todos los lados

@@ -55,9 +55,12 @@ export class BaseItem extends Phaser.Physics.Arcade.Sprite {
     const velY = config.initialVelocityY !== undefined ? config.initialVelocityY : 100;
     this.body.setVelocity(velX, velY);
     
-    // Sprite fijo sin rotación
+    // Escala más grande (2.5x) y sprite completamente fijo sin rotación
+    this.setScale(2.5);
     this.setRotation(0);
     this.setAngularVelocity(0);
+    this.rotation = 0;
+    this.angle = 0;
     
     // Visual effects - subtle glow/pulse
     this.createVisualEffects();
@@ -75,11 +78,11 @@ export class BaseItem extends Phaser.Physics.Arcade.Sprite {
    * Create visual feedback effects (pulse, glow)
    */
   createVisualEffects() {
-    // Gentle floating pulse animation
+    // Gentle floating pulse animation - desde escala 2.5 a 2.8
     this.scene.tweens.add({
       targets: this,
-      scaleX: 1.1,
-      scaleY: 1.1,
+      scaleX: 2.8,
+      scaleY: 2.8,
       duration: 800,
       yoyo: true,
       repeat: -1,
@@ -167,20 +170,25 @@ export class BaseItem extends Phaser.Physics.Arcade.Sprite {
     
     if (!this.active || this.consumed) return;
     
-    // Update TTL if enabled
+    // Forzar rotación 0 siempre (evitar cualquier rotación)
+    this.rotation = 0;
+    this.angle = 0;
+    
+    // TTL DESHABILITADO - Los items NUNCA desaparecen automáticamente
+    // Solo se destruyen cuando el jugador los recoge
+    /*
     if (this.ttl > 0) {
       this.ttl -= delta;
       
-      // Start blinking when TTL is low (last 2 seconds)
       if (this.ttl <= 2000 && this.ttl > 0 && !this.ttlBlinkTimer) {
         this.startTTLBlink();
       }
       
-      // Despawn when TTL expires
       if (this.ttl <= 0) {
         this.despawn();
       }
     }
+    */
   }
 
   /**

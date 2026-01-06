@@ -21,28 +21,8 @@ export class PowerUpTimeSlow extends BaseItem {
     // Set to hourglass frame (frame 7)
     this.setFrame(7);
     
-    // Yellow/orange visual effect for hourglass
+    // Yellow/orange visual effect for hourglass (sin animaciones que sobrescriben BaseItem)
     this.setTint(0xFFCC00);
-    
-    // Pulsing animation
-    this.scene.tweens.add({
-      targets: this,
-      scale: { from: 1.0, to: 1.15 },
-      duration: 700,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
-    });
-    
-    // Flip animation (hourglass turning)
-    this.scene.tweens.add({
-      targets: this,
-      angle: { from: 0, to: 180 },
-      duration: 2000,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
-    });
   }
 
   /**
@@ -113,51 +93,72 @@ export class PowerUpTimeSlow extends BaseItem {
    * @param {number} slowMultiplier - Speed multiplier (e.g., 0.4 = 40% speed)
    */
   slowAllBalls(scene, duration, slowMultiplier) {
-    if (!scene.ballsGroup) {
-      console.warn('No ballsGroup found in scene for time slow');
-      return;
+    let totalSlowed = 0;
+    
+    // Slow balls
+    if (scene.ballsGroup) {
+      const balls = scene.ballsGroup.getChildren();
+      totalSlowed += balls.length;
+      
+      balls.forEach(ball => {
+        if (!ball || !ball.active || !ball.body || ball._isSlowed) return;
+        
+        ball._originalVelocity = {
+          x: ball.body.velocity.x,
+          y: ball.body.velocity.y
+        };
+        
+        ball.body.setVelocity(
+          ball.body.velocity.x * slowMultiplier,
+          ball.body.velocity.y * slowMultiplier
+        );
+        
+        if (ball.speedX !== undefined) {
+          ball._originalSpeedX = ball.speedX;
+          ball.speedX *= slowMultiplier;
+        }
+        
+        ball.setTint(0xFFAA44);
+        ball._isSlowed = true;
+        ball._slowMultiplier = slowMultiplier;
+      });
     }
     
-    const balls = scene.ballsGroup.getChildren();
-    
-    if (balls.length === 0) {
-      console.log('No balls to slow down');
-      return;
+    // Slow birds
+    if (scene.birdsGroup) {
+      const birds = scene.birdsGroup.getChildren();
+      totalSlowed += birds.length;
+      
+      birds.forEach(bird => {
+        if (!bird || !bird.active || !bird.body || bird._isSlowed) return;
+        
+        bird._originalVelocity = {
+          x: bird.body.velocity.x,
+          y: bird.body.velocity.y
+        };
+        
+        bird.body.setVelocity(
+          bird.body.velocity.x * slowMultiplier,
+          bird.body.velocity.y * slowMultiplier
+        );
+        
+        if (bird.speedX !== undefined) {
+          bird._originalSpeedX = bird.speedX;
+          bird.speedX *= slowMultiplier;
+        }
+        
+        bird.setTint(0xFFAA44);
+        bird._isSlowed = true;
+        bird._slowMultiplier = slowMultiplier;
+      });
     }
     
-    console.log(`Slowing ${balls.length} balls to ${slowMultiplier * 100}% speed for ${duration}ms`);
+    console.log(`Slowing ${totalSlowed} entities to ${slowMultiplier * 100}% speed for ${duration}ms`);
     
-    balls.forEach(ball => {
-      if (!ball || !ball.active || !ball.body) return;
-      
-      // Skip if already slowed
-      if (ball._isSlowed) return;
-      
-      // Store original velocity
-      ball._originalVelocity = {
-        x: ball.body.velocity.x,
-        y: ball.body.velocity.y
-      };
-      
-      // Apply slow motion
-      ball.body.setVelocity(
-        ball.body.velocity.x * slowMultiplier,
-        ball.body.velocity.y * slowMultiplier
-      );
-      
-      // Store original speed for future use
-      if (ball.speedX !== undefined) {
-        ball._originalSpeedX = ball.speedX;
-        ball.speedX *= slowMultiplier;
-      }
-      
-      // Visual feedback - orange tint
-      ball.setTint(0xFFAA44);
-      
-      // Mark as slowed
-      ball._isSlowed = true;
-      ball._slowMultiplier = slowMultiplier;
-    });
+    if (totalSlowed === 0) {
+      console.log('No entities to slow down');
+      return;
+    }
     
     // Restore normal speed after duration
     scene.time.delayedCall(duration, () => {
@@ -170,39 +171,60 @@ export class PowerUpTimeSlow extends BaseItem {
    * @param {Phaser.Scene} scene - The game scene
    */
   restoreNormalSpeed(scene) {
-    if (!scene.ballsGroup) return;
+    // Restore balls
+    if (scene.ballsGroup) {
+      const balls = scene.ballsGroup.getChildren();
+      
+      balls.forEach(ball => {
+        if (!ball || !ball.active || !ball.body || !ball._isSlowed) return;
+        
+        const multiplier = ball._slowMultiplier || ITEMS.MULTIPLIER.SLOW_MOTION;
+        ball.body.setVelocity(
+          ball.body.velocity.x / multiplier,
+          ball.body.velocity.y / multiplier
+        );
+        
+        if (ball._originalSpeedX !== undefined) {
+          ball.speedX = ball._originalSpeedX;
+          delete ball._originalSpeedX;
+        }
+        
+        ball.clearTint();
+        if (ball.ballColor) {
+          ball.setTint(ball.ballColor);
+        }
+        
+        ball._isSlowed = false;
+        delete ball._slowMultiplier;
+        delete ball._originalVelocity;
+      });
+    }
     
-    const balls = scene.ballsGroup.getChildren();
-    
-    balls.forEach(ball => {
-      if (!ball || !ball.active || !ball.body || !ball._isSlowed) return;
+    // Restore birds
+    if (scene.birdsGroup) {
+      const birds = scene.birdsGroup.getChildren();
       
-      // Restore velocity by dividing by the slow multiplier
-      const multiplier = ball._slowMultiplier || ITEMS.MULTIPLIER.SLOW_MOTION;
-      ball.body.setVelocity(
-        ball.body.velocity.x / multiplier,
-        ball.body.velocity.y / multiplier
-      );
-      
-      // Restore original speed
-      if (ball._originalSpeedX !== undefined) {
-        ball.speedX = ball._originalSpeedX;
-        delete ball._originalSpeedX;
-      }
-      
-      // Clear tint
-      ball.clearTint();
-      
-      // Restore original tint if it had one
-      if (ball.ballColor) {
-        ball.setTint(ball.ballColor);
-      }
-      
-      // Unmark slowed
-      ball._isSlowed = false;
-      delete ball._slowMultiplier;
-      delete ball._originalVelocity;
-    });
+      birds.forEach(bird => {
+        if (!bird || !bird.active || !bird.body || !bird._isSlowed) return;
+        
+        const multiplier = bird._slowMultiplier || ITEMS.MULTIPLIER.SLOW_MOTION;
+        bird.body.setVelocity(
+          bird.body.velocity.x / multiplier,
+          bird.body.velocity.y / multiplier
+        );
+        
+        if (bird._originalSpeedX !== undefined) {
+          bird.speedX = bird._originalSpeedX;
+          delete bird._originalSpeedX;
+        }
+        
+        bird.clearTint();
+        
+        bird._isSlowed = false;
+        delete bird._slowMultiplier;
+        delete bird._originalVelocity;
+      });
+    }
     
     console.log('Slow motion effect ended');
   }

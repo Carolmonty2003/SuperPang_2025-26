@@ -129,6 +129,9 @@ export class BaseBird extends Phaser.Physics.Arcade.Sprite {
   updateLoopingMovement() {
     if (!this.isFlying || this.isFalling) return;
     
+    // STOP MOVEMENT IF FROZEN
+    if (this._isFrozen) return;
+    
     // Safety check: ensure scene and time exist
     if (!this.scene || !this.scene.time) return;
     
@@ -259,7 +262,7 @@ export class BaseBird extends Phaser.Physics.Arcade.Sprite {
     
     if (this.x < -buffer || this.x > bounds.width + buffer ||
         this.y < -buffer || this.y > bounds.height + buffer) {
-      console.log('Bird out of bounds');
+      // console.log('Bird out of bounds'); // Comentado para evitar spam
       this.destroy();
       return true;
     }

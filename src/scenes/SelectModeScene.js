@@ -80,9 +80,9 @@ export class SelectModeScene extends Phaser.Scene {
       tourTitle.setColor("#ffcc00");
     });
 
-    // Click TOUR -> ahora abre el nuevo Level_01
+    // Click TOUR -> ahora abre el nuevo Level1
     tourZone.on("pointerdown", () => {
-      this.scene.start("Level_01", { mode: "tour" });
+      this.scene.start("Level1", { mode: "tour" });
     });
 
     // ---------- BOTÓN PANIC MODE ----------
@@ -134,9 +134,9 @@ export class SelectModeScene extends Phaser.Scene {
       panicTitle.setColor("#ff3366");
     });
 
-    // Click PANIC -> sigue abriendo el Level1 clásico
+    // Click PANIC -> ahora abre PanicLevel
     panicZone.on("pointerdown", () => {
-      this.scene.start("Level1", { mode: "panic" });
+      this.scene.start("PanicLevel", { mode: "panic" });
     });
 
     // Tecla ESC para volver al menú principal

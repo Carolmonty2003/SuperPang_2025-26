@@ -16,7 +16,7 @@ export const HERO_WEAPON = {
 
 export class Hero extends HeroBase 
 {
-    constructor(scene, x, y, texture = 'player_walk') 
+    constructor(scene, x, y, texture = 'player') 
     {
         super(scene, x, y, texture);
 
@@ -42,6 +42,12 @@ export class Hero extends HeroBase
         this.originalSpeed = null;
         this.weaponLevel = 0; // Start at base weapon level
         this.weaponStats = WEAPON_LEVELS[0]; // Initialize with base weapon stats
+
+        // Climbing system
+        this.isClimbing = false;
+        this.currentLadder = null;
+        this.ladderBounds = null;
+        this.climbSpeed = 100;
 
         this.createAnimations();
 
@@ -89,7 +95,7 @@ export class Hero extends HeroBase
         if (!anims.exists('idle')) {
             anims.create({
                 key: 'idle',
-                frames: [{ key: 'player_walk', frame: 0 }],
+                frames: [{ key: 'player', frame: 3 }],
                 frameRate: 1,
                 repeat: -1,
             });
@@ -98,7 +104,7 @@ export class Hero extends HeroBase
         if (!anims.exists('run')) {
             anims.create({
                 key: 'run',
-                frames: anims.generateFrameNumbers('player_walk', { start: 0, end: 2 }),
+                frames: anims.generateFrameNumbers('player', { start: 0, end: 3 }),
                 frameRate: 12,
                 repeat: -1,
             });
@@ -107,8 +113,36 @@ export class Hero extends HeroBase
         if (!anims.exists('shoot')) {
             anims.create({
                 key: 'shoot',
-                frames: anims.generateFrameNumbers('player_shoot', { start: 0, end: 1 }),
+                frames: anims.generateFrameNumbers('player', { start: 4, end: 5 }),
                 frameRate: 8,
+                repeat: 0,
+            });
+        }
+
+        // Climbing animations
+        if (!anims.exists('climb_start')) {
+            anims.create({
+                key: 'climb_start',
+                frames: [{ key: 'player', frame: 9 }],
+                frameRate: 1,
+                repeat: 0,
+            });
+        }
+
+        if (!anims.exists('climb_loop')) {
+            anims.create({
+                key: 'climb_loop',
+                frames: anims.generateFrameNumbers('player', { start: 10, end: 11 }),
+                frameRate: 8,
+                repeat: -1,
+            });
+        }
+
+        if (!anims.exists('climb_end')) {
+            anims.create({
+                key: 'climb_end',
+                frames: [{ key: 'player', frame: 12 }],
+                frameRate: 1,
                 repeat: 0,
             });
         }
@@ -168,9 +202,10 @@ export class Hero extends HeroBase
 
     shootGunFan() {
         const angles = [-80, -85, -90, -95, -100];
+        const offsets = [-10, -5, 0, 5, 10]; // Offset horizontal para evitar superposición
 
-        angles.forEach(angle => {
-            const bullet = new Bullet(this.scene, this.x, this.y - 40, 'bullet');
+        angles.forEach((angle, index) => {
+            const bullet = new Bullet(this.scene, this.x + offsets[index], this.y - 40, 'bullet');
 
             if (this.scene.bullets) {
                 this.scene.bullets.add(bullet);
@@ -530,4 +565,109 @@ export class Hero extends HeroBase
         
         console.log('Power-ups reset');
     }
+
+    /**
+     * Start climbing ladder
+     */
+    startClimbing(ladderX, ladderTop, ladderBottom) {
+        if (this.isClimbing) return;
+        
+        this.isClimbing = true;
+        this.ladderBounds = {
+            x: ladderX,
+            top: ladderTop,
+            bottom: ladderBottom
+        };
+        
+        // Disable gravity and physics
+        this.body.setAllowGravity(false);
+        this.body.setVelocity(0, 0);
+        this.body.enable = false; // Disable physics completely during climb
+        
+        // Center player on ladder
+        this.x = ladderX;
+        
+        // Set initial frame (frame 9 - starting to climb, manos arriba)
+        this.setFrame(9);
+        this.anims.stop();
+        
+        // Automatically climb to top
+        const distance = this.y - ladderTop;
+        const duration = (distance / this.climbSpeed) * 1000; // Convert to ms
+        
+        this.scene.tweens.add({
+            targets: this,
+            y: ladderTop - 20, // Exit above ladder
+            duration: duration,
+            ease: 'Linear',
+            onUpdate: (tween) => {
+                // Keep centered
+                this.x = ladderX;
+                
+                // Play loop animation during climb
+                const distanceLeft = this.y - ladderTop;
+                if (distanceLeft > 64) {
+                    // Middle of ladder - frames 1-2
+                    if (!this.anims.isPlaying || this.anims.currentAnim.key !== 'climb_loop') {
+                        this.play('climb_loop');
+                    }
+                } else if (distanceLeft > 20) {
+                    // Near top - frame 3
+                    if (!this.anims.isPlaying || this.anims.currentAnim.key !== 'climb_end') {
+                        this.play('climb_end');
+                    }
+                }
+            },
+            onComplete: () => {
+                this.stopClimbing();
+            }
+        });
+    }
+
+    /**
+     * Stop climbing ladder
+     */
+    stopClimbing() {
+        if (!this.isClimbing) return;
+        
+        this.isClimbing = false;
+        this.ladderBounds = null;
+        
+        // Re-enable physics and gravity
+        this.body.enable = true;
+        this.body.setAllowGravity(true);
+        
+        // Return to idle
+        this.play('idle');
+    }
+
+    /**
+     * Update climbing state
+     */
+    updateClimbing() {
+        if (!this.isClimbing || !this.ladderBounds) return;
+        
+        // Keep centered on ladder during tween
+        this.x = this.ladderBounds.x;
+    }
+
+    /**
+     * Check if player wants to enter ladder
+     */
+    checkLadderEntry() {
+        if (this.isClimbing || !this.cursors.up.isDown) return;
+        
+        // Check if near ladder in the scene
+        if (this.scene.ladders && this.scene.ladders.length > 0) {
+            for (const ladder of this.scene.ladders) {
+                const distance = Math.abs(this.x - ladder.x);
+                
+                if (distance < 32 && this.y >= ladder.top && this.y <= ladder.bottom) {
+                    this.startClimbing(ladder.x, ladder.top, ladder.bottom);
+                    break;
+                }
+            }
+        }
+    }
 }
+
