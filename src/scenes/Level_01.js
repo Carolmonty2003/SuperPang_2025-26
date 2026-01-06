@@ -93,8 +93,10 @@ export class Level_01 extends Phaser.Scene {
     // --- 8. BIRDS (ADD THIS SECTION) ---
     this.load.setPath("assets/sprites/spritesheets/enemies");
     
-    // Option A: Single images (simplest - no animation)
-    this.load.image("bird_small", "bird_small.png");
+    this.load.spritesheet("bird_small", "bird_small.png", {
+      frameWidth: 51,
+      frameHeight: 31
+    });
 
     // --- 10. COCODRILOS (ADD THIS SECTION) --------------------------------------------------------------
     // COCODRILOS
