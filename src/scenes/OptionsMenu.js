@@ -15,6 +15,11 @@ export class OptionsMenu extends Phaser.Scene {
   }
 
   create() {
+    if (this.game.audioManager) {
+      this.game.audioManager.stopMusic();
+      this.game.audioManager.playMusic(this, 'inicio', { loop: true, volume: 0.5 });
+    }
+
     const cam = this.cameras.main;
     const centerX = cam.centerX;
     const centerY = cam.centerY;
@@ -137,6 +142,12 @@ export class OptionsMenu extends Phaser.Scene {
 
     backText.on("pointerdown", goBack);
     this.input.keyboard.on("keydown-ESC", goBack);
+  }
+
+  shutdown() {
+    if (this.game.audioManager) {
+      this.game.audioManager.stopMusic();
+    }
   }
 }
 

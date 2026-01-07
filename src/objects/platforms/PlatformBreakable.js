@@ -76,8 +76,33 @@ export class PlatformBreakable extends PlatformBase {
       weapon.destroy();
     }
 
+    // Eliminar colisión de todos los tiles antes de destruir
+    this.tiles.forEach(tile => {
+      if (tile && tile.tilemapLayer) {
+        tile.tilemapLayer.removeTileAt(tile.x, tile.y);
+        tile.setCollision(false, false, false, false);
+        // Elimina referencia a la plataforma
+        if (tile.properties) {
+          delete tile.properties.platform;
+        }
+      }
+    });
+    // Refresca la colisión del layer completo
+    if (this.scene.platformsBreakable) {
+      this.scene.platformsBreakable.setCollisionByExclusion([-1, 0]);
+    }
+    // Elimina referencia del array de plataformas
+    if (this.scene.breakablePlatforms) {
+      this.scene.breakablePlatforms = this.scene.breakablePlatforms.filter(p => p !== this);
+    }
+
     // Destroy platform tiles / base cleanup
     super.destroy();
+
+    // Play platform break sound
+    if (this.scene && this.scene.sound) {
+      this.scene.sound.play('rectangulo_pop', { volume: 0.7 });
+    }
 
     console.log('Breakable platform destroyed at', center);
   }

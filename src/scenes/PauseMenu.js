@@ -6,6 +6,11 @@ export class PauseMenu extends Phaser.Scene {
   }
 
   create() {
+    if (this.game.audioManager) {
+      this.game.audioManager.stopMusic();
+      this.game.audioManager.playMusic(this, 'inicio', { loop: true, volume: 0.5 });
+    }
+
     const cam = this.cameras.main;
 
     const width = cam.width;
@@ -126,6 +131,12 @@ export class PauseMenu extends Phaser.Scene {
       this.scene.resume(pausedSceneKey);
       this.scene.stop(); // cierra PauseMenu
     });
+  }
+
+  shutdown() {
+    if (this.game.audioManager) {
+      this.game.audioManager.stopMusic();
+    }
   }
 }
 

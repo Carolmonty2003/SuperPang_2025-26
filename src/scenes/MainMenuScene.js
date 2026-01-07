@@ -11,6 +11,8 @@ export class MainMenuScene extends Phaser.Scene {
       'mainMenuBg',
       'assets/sprites/ui/MainSceneSprite.jpg'
     );
+    this.load.setPath('assets/audio');
+    this.load.audio('inicio', 'inicio.mp3');
   }
 
   create() {
@@ -31,6 +33,11 @@ export class MainMenuScene extends Phaser.Scene {
 
     bg.setScale(scale);
     bg.setDepth(0);
+
+    if (this.game.audioManager) {
+      this.game.audioManager.stopMusic();
+      this.game.audioManager.playMusic(this, 'inicio', { loop: true, volume: 0.5 });
+    }
 
     // ===== BOTÓN JUGAR =====
     const playText = this.add.text(centerX, centerY + 360, 'JUGAR', {
@@ -94,6 +101,12 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   update(time, delta) {}
+
+  shutdown() {
+    if (this.game.audioManager) {
+      this.game.audioManager.stopMusic();
+    }
+  }
 }
 
 export default MainMenuScene;

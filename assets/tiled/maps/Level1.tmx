@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="48" height="26" tilewidth="32" tileheight="32" infinite="0" nextlayerid="9" nextobjectid="6">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="48" height="26" tilewidth="32" tileheight="32" infinite="0" nextlayerid="11" nextobjectid="28">
  <editorsettings>
-  <export target="LevelTest.json" format="json"/>
+  <export target="Level1.json" format="json"/>
  </editorsettings>
  <tileset firstgid="1" name="tileset_muros" tilewidth="32" tileheight="32" tilecount="2" columns="2">
   <image source="../tilesets/tileset_muros.png" width="64" height="32"/>
@@ -154,8 +154,8 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,12,12,12,12,12,12,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,5,5,5,5,5,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,10,10,10,10,10,10,10,10,10,10,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -175,18 +175,95 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <objectgroup id="7" name="drops">
-  <object id="3" x="812.061" y="782.758">
+ <objectgroup id="7" name="drops"/>
+ <objectgroup id="9" name="balls">
+  <object id="15" x="81.9487" y="128.08">
    <properties>
-    <property name="Drop" value="time_freeze"/>
+    <property name="direction x" type="float" value="1"/>
+    <property name="type" value="n_tiny"/>
+    <property name="velocity" type="float" value="1"/>
    </properties>
+   <point/>
+  </object>
+  <object id="19" x="108.667" y="164.667">
+   <properties>
+    <property name="direction x" type="float" value="1"/>
+    <property name="type" value="n_tiny"/>
+    <property name="velocity" type="float" value="1"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="20" x="146" y="199.333">
+   <properties>
+    <property name="direction x" type="float" value="1"/>
+    <property name="type" value="n_tiny"/>
+    <property name="velocity" type="float" value="1"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="21" x="180.667" y="228.667">
+   <properties>
+    <property name="direction x" type="float" value="1"/>
+    <property name="type" value="n_tiny"/>
+    <property name="velocity" type="float" value="1"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="22" x="209.333" y="258.667">
+   <properties>
+    <property name="direction x" type="float" value="1"/>
+    <property name="type" value="n_tiny"/>
+    <property name="velocity" type="float" value="1"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="23" x="1463.33" y="132">
+   <properties>
+    <property name="direction x" type="float" value="-1"/>
+    <property name="type" value="n_tiny"/>
+    <property name="velocity" type="float" value="1"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="24" x="1428.67" y="165.333">
+   <properties>
+    <property name="direction x" type="float" value="-1"/>
+    <property name="type" value="n_tiny"/>
+    <property name="velocity" type="float" value="1"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="25" x="1396.67" y="194.667">
+   <properties>
+    <property name="direction x" type="float" value="-1"/>
+    <property name="type" value="n_tiny"/>
+    <property name="velocity" type="float" value="1"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="26" x="1367.33" y="229.333">
+   <properties>
+    <property name="direction x" type="float" value="-1"/>
+    <property name="type" value="n_tiny"/>
+    <property name="velocity" type="float" value="1"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="27" x="1335.33" y="260">
+   <properties>
+    <property name="direction x" type="float" value="-1"/>
+    <property name="type" value="n_tiny"/>
+    <property name="velocity" type="float" value="1"/>
+   </properties>
+   <point/>
   </object>
  </objectgroup>
  <objectgroup id="8" name="drops_platforms">
-  <object id="5" x="1135" y="269">
+  <object id="18" x="748" y="242">
    <properties>
     <property name="drop" value="time_freeze"/>
    </properties>
   </object>
  </objectgroup>
+ <objectgroup id="10" name="enemies"/>
 </map>

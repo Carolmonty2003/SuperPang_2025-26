@@ -8,7 +8,11 @@ export class BaseHexBall extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this);
     scene.physics.world.enable(this);
 
-    this.nextBallType = nextBallType;
+    
+
+    // Guardar referencia a la escena para splits/async (por si Phaser limpia this.scene)
+    this._sceneRef = scene;
+this.nextBallType = nextBallType;
     this.speedX = speedX;
     this.speedY = speedY;
     this.scoreValue = scoreValue;
@@ -65,6 +69,10 @@ export class BaseHexBall extends Phaser.Physics.Arcade.Sprite {
     
     // Aplicar velocidad inicial
     this.body.setVelocity(this.velocityX, this.velocityY);
+    // Emit BALL_CREATED event
+    if (scene && scene.game && scene.game.events) {
+      scene.game.events.emit(EVENTS.enemy.BALL_CREATED, this);
+    }
   }
   
   preUpdate(time, delta) {
@@ -97,25 +105,33 @@ export class BaseHexBall extends Phaser.Physics.Arcade.Sprite {
     this.body.setVelocity(this.velocityX, this.velocityY);
   }
 
-  takeDamage() {
-    // Mostrar puntaje flotante en azul
+  async takeDamage() {
     this.showFloatingScore();
-    
-    // Dar puntos
     if (this.scene && this.scene.game && this.scene.game.events) {
       this.scene.game.events.emit(EVENTS.game.SCORE_CHANGE, this.scoreValue);
     }
-    
-    // Split si hay siguiente tipo
+    // Split si corresponde
     if (this.nextBallType) {
-      this.split();
+      await this.split();
     }
-    
-    // Destruir
+    // Reproducir audio pop
+    if (this.scene && this.scene.sound) {
+      this.scene.sound.play('burbuja_pop', { volume: 0.7 });
+    }
+    // Eliminar del grupo antes de destruir
+    if (this.scene && this.scene.ballsGroup && this.scene.ballsGroup.contains(this)) {
+      this.scene.ballsGroup.remove(this, true, true);
+    }
+    // Emit BALL_DESTROYED event antes de destruir
+    if (this.scene && this.scene.game && this.scene.game.events) {
+      this.scene.game.events.emit(EVENTS.enemy.BALL_DESTROYED, this);
+    }
     this.destroy();
   }
 
   showFloatingScore() {
+    // Prevent crash if scene.add is not available (scene may be destroyed)
+    if (!this.scene || !this.scene.add) return;
     // Crear texto flotante con el puntaje
     const scoreText = this.scene.add.text(this.x, this.y, `+${this.scoreValue}`, {
       fontSize: '32px',
@@ -125,10 +141,8 @@ export class BaseHexBall extends Phaser.Physics.Arcade.Sprite {
       stroke: '#FFFFFF',
       strokeThickness: 3
     });
-    
     scoreText.setOrigin(0.5, 0.5);
     scoreText.setDepth(100); // Por encima de todo
-    
     // Animación: flota hacia arriba y desaparece
     this.scene.tweens.add({
       targets: scoreText,
@@ -142,60 +156,60 @@ export class BaseHexBall extends Phaser.Physics.Arcade.Sprite {
     });
   }
 
-  split() {
-    const scene = this.scene;
+  async split() {
+    const scene = this.scene || this._sceneRef;
     const x = this.x;
     const y = this.y;
-    const color = this.ballColor; // Heredar color
-
+    const color = this.ballColor;
     let ball1, ball2;
-
-    // Lazy import para evitar dependencias circulares
-    const createBalls = async () => {
-      switch (this.nextBallType) {
-        case "hex_mid":
-          const { HexMidBall } = await import('./HexMidBall.js');
-          ball1 = new HexMidBall(scene, x, y, -1, -1, color);
-          ball2 = new HexMidBall(scene, x, y, 1, 1, color);
-          break;
-        case "hex_small":
-          const { HexSmallBall } = await import('./HexSmallBall.js');
-          ball1 = new HexSmallBall(scene, x, y, -1, -1, color);
-          ball2 = new HexSmallBall(scene, x, y, 1, 1, color);
-          break;
-        default:
-          return;
+    switch (this.nextBallType) {
+      case "hex_mid": {
+        const { HexMidBall } = await import('./HexMidBall.js');
+        ball1 = new HexMidBall(scene, x, y, -1, -1, color);
+        ball2 = new HexMidBall(scene, x, y, 1, 1, color);
+        break;
       }
-
-      // Añadir al grupo
-      if (scene.ballsGroup) {
-        scene.ballsGroup.add(ball1);
-        scene.ballsGroup.add(ball2);
-        
-        // Mark split balls if parent was marked for burst
-        if (this._markedForBurst && scene.burstClearActive) {
-          ball1._spawnedFromMarkedBall = true;
-          ball2._spawnedFromMarkedBall = true;
-          ball1._markedForBurst = true;
-          ball2._markedForBurst = true;
-          scene.markedForBurst.add(ball1);
-          scene.markedForBurst.add(ball2);
-        }
+      case "hex_small": {
+        const { HexSmallBall } = await import('./HexSmallBall.js');
+        ball1 = new HexSmallBall(scene, x, y, -1, -1, color);
+        ball2 = new HexSmallBall(scene, x, y, 1, 1, color);
+        break;
       }
-
-      // SIEMPRE separar en direcciones opuestas (izq/der) y hacia ARRIBA
-      const horizontalSpeed = 200; // Velocidad horizontal fija
-      const upwardSpeed = -300; // Velocidad hacia arriba (negativa en Y)
-
-      ball1.velocityX = -horizontalSpeed; // Izquierda
-      ball1.velocityY = upwardSpeed; // Arriba
-      ball1.body.setVelocity(ball1.velocityX, ball1.velocityY);
-      
-      ball2.velocityX = horizontalSpeed; // Derecha
-      ball2.velocityY = upwardSpeed; // Arriba
-      ball2.body.setVelocity(ball2.velocityX, ball2.velocityY);
-    };
-
-    createBalls();
+      default:
+        return;
+    }
+    if (scene.ballsGroup) {
+      scene.ballsGroup.add(ball1);
+      scene.ballsGroup.add(ball2);
+      // Emit BALL_CREATED for split balls
+      if (scene.game && scene.game.events) {
+        scene.game.events.emit(EVENTS.enemy.BALL_CREATED, ball1);
+        scene.game.events.emit(EVENTS.enemy.BALL_CREATED, ball2);
+      }
+      // Mark split balls if parent was marked for burst
+      if (this._markedForBurst && scene.burstClearActive) {
+        ball1._spawnedFromMarkedBall = true;
+        ball2._spawnedFromMarkedBall = true;
+        ball1._markedForBurst = true;
+        ball2._markedForBurst = true;
+        scene.markedForBurst.add(ball1);
+        scene.markedForBurst.add(ball2);
+      }
+    }
+    const horizontalSpeed = 200;
+    const upwardSpeed = -300;
+    // SIEMPRE SPLIT NORMAL, IGNORAR FREEZE
+    ball1.velocityX = -horizontalSpeed;
+    ball1.velocityY = upwardSpeed;
+    ball1.body.setVelocity(ball1.velocityX, ball1.velocityY);
+    ball2.velocityX = horizontalSpeed;
+    ball2.velocityY = upwardSpeed;
+    ball2.body.setVelocity(ball2.velocityX, ball2.velocityY);
+    // Play pop sound when splitting
+    if (scene && scene.sound) {
+      scene.sound.play('burbuja_pop', { volume: 0.7 });
+    }
   }
 }
+
+

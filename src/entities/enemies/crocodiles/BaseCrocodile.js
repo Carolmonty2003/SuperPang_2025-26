@@ -308,6 +308,11 @@ export class BaseCrocodile extends Phaser.Physics.Arcade.Sprite {
 
     // Show stun indicator
     this.showStunIndicator();
+
+    // Play pop sound when crocodile is hit
+    if (this.scene && this.scene.sound) {
+      this.scene.sound.play('burbuja_pop', { volume: 0.7 });
+    }
   }
 
   /**

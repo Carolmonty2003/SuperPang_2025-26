@@ -3,7 +3,6 @@
 import { Hero } from "../entities/Hero.js";
 import { GAME_SIZE } from "../core/constants.js";
 import { Hud } from "../UI/HUD.js";
-import { Platform } from "../objects/Platform.js";
 import { PlatformManager } from "../objects/platforms/PlatformManager.js";
 import { WallManager } from "../objects/WallManager.js";
 import { BallManager } from "../entities/enemies/balls/BallManager.js";
@@ -19,7 +18,7 @@ import { Crocodile } from "../entities/enemies/crocodiles/Crocodile.js";
 import { CROCODILE_COLORS } from "../entities/enemies/crocodiles/CrocodileConstants.js";
 
 export class Level1 extends Phaser.Scene {
-  constructor() {
+    constructor() {
     super({ key: "Level1" });
     this.platformObjects = new Map();
     this.heroBallOverlap = null; // Referencia al overlap pelotas-héroe
@@ -37,6 +36,15 @@ export class Level1 extends Phaser.Scene {
   }
 
   preload() {
+    console.log('Nivel 1 abierto');
+    // --- AUDIO ---
+    this.load.setPath('assets/audio');
+    this.load.audio('burbuja_pop', 'burbuja_pop.mp3');
+    this.load.audio('rectangulo_pop', 'rectangulo_pop.mp3');
+    this.load.audio('disparo', 'disparo.mp3');
+    this.load.audio('bandaSonora', 'bandaSonora.mp3');
+    this.load.audio('victoria', 'victoria.mp3');
+    this.load.audio('gameover', 'gameover.mp3');
     // --- 1. FONDO ---
     this.load.setPath("assets/sprites/backgrounds");
     this.load.spritesheet("backgrounds", "backgrounds.png", {
@@ -51,7 +59,7 @@ export class Level1 extends Phaser.Scene {
 
     // --- 3. TILEMAP ---
     this.load.setPath("assets/tiled/maps");
-    this.load.tilemapTiledJSON("map_level_01", "LevelTest.json");
+    this.load.tilemapTiledJSON("map_level_01", "level1.json");
 
     // --- 4. SPRITES HERO ---
     this.load.setPath("assets/sprites/spritesheets/hero");
@@ -115,10 +123,52 @@ export class Level1 extends Phaser.Scene {
   }
 
   create() {
+                // Listener para vidas del héroe
+                if (this.game && this.game.events) {
+                  this.game.events.on('hero:damaged', (remainingLives) => {
+                    if (remainingLives <= 0) {
+                      if (this.sound) this.sound.play('gameover', { volume: 1 });
+                      setTimeout(() => {
+                        this.scene.start('MainMenuScene');
+                      }, 2000);
+                    }
+                  });
+                }
+        // Ball counter and event listeners
+        this._ballCount = 0;
+        this._levelCompleted = false;
+        if (this.game && this.game.events) {
+          this.game.events.on('enemy:ball_created', (ball) => {
+            this._ballCount++;
+            console.log(`[BALL CREATED] Count: ${this._ballCount}`, ball);
+          });
+          this.game.events.on('enemy:ball_destroyed', async (ball) => {
+            this._ballCount = Math.max(0, this._ballCount - 1);
+            if (this._ballCount === 0 && !this._levelCompleted) {
+              this._levelCompleted = true;
+              this.game.audioManager.playEffect(this, 'victoria', { volume: 1 });
+              await new Promise(res => setTimeout(res, 2000));
+              this.game.audioManager.stopMusic();
+              this.scene.start('Level2');
+            }
+          });
+          this.game.events.on('hero:damaged', (remainingLives) => {
+            if (remainingLives <= 0) {
+              this.game.audioManager.playEffect(this, 'gameover', { volume: 1 });
+              this.game.audioManager.stopMusic();
+              setTimeout(() => {
+                this.scene.start('MainMenuScene');
+              }, 2000);
+            }
+          });
+        }
+        this.events.on(Phaser.Scenes.Events.SHUTDOWN, () => {
+          this.game.audioManager.stopMusic();
+        });
     const BG_HEIGHT = GAME_SIZE.HEIGHT;
 
     // --- FONDO ---
-    const bg = this.add.image(0, 0, "backgrounds", 3).setOrigin(0, 0);
+    const bg = this.add.image(0, 0, "backgrounds", 1).setOrigin(0, 0);
     bg.setDisplaySize(GAME_SIZE.WIDTH, BG_HEIGHT);
 
     // el fondo al fondo de todo
@@ -193,9 +243,7 @@ export class Level1 extends Phaser.Scene {
     });
     
     // Static platforms keep collision but no special behavior needed
-    
-    this.createPlatformObjects();
-
+    // this.createPlatformObjects(); // removed: using PlatformManager PlatformBase
     // Bounds mundo físico
     this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
@@ -263,6 +311,8 @@ export class Level1 extends Phaser.Scene {
     // ===================== BALLS (DESDE TILED) =====================
     this.ballManager = new BallManager(this, this.map, this.ballsGroup);
     this.ballManager.createFromObjectLayer('balls');
+    // Log all balls detected at start
+    console.log('[BALLS INIT] Balls detected:', this.ballsGroup.getChildren());
 
     // --- DROPPER (SISTEMA DE ITEMS) ---
 
@@ -375,7 +425,6 @@ export class Level1 extends Phaser.Scene {
     // --- DEBUG KEY ---
     this.input.keyboard.on('keydown-B', () => {
       this.spawnBird('SMALL', this.hero.x, 200, 1);
-      console.log('Debug: Bird spawned at hero position');
     });
 
     // ===================== CROCODILES =====================
@@ -401,7 +450,6 @@ export class Level1 extends Phaser.Scene {
     this.input.keyboard.on('keydown-V', () => {
       const groundY = 700;
       this.spawnCrocodile(this.hero.x, groundY);
-      console.log('Debug: Spawned crocodile with V key');
     });
   }
 
@@ -421,7 +469,6 @@ export class Level1 extends Phaser.Scene {
     
     this.birdsGroup.add(bird);
     
-    console.log(`Spawned ${type} bird at (${x}, ${y}) moving ${direction > 0 ? 'right' : 'left'}`);
     
     return bird;
   }
@@ -432,7 +479,6 @@ export class Level1 extends Phaser.Scene {
     const aliveBirds = this.birdsGroup.getChildren().filter(b => b.active && !b.isDead);
     
     if (aliveBirds.length >= maxBirds) {
-      console.log('Max birds reached, skipping spawn');
       return;
     }
     
@@ -455,7 +501,7 @@ export class Level1 extends Phaser.Scene {
 
   birdHitsHero(hero, bird) {
     if (bird && bird.isFlying && !bird.isDead && hero && hero.active) {
-      console.log('Bird hit hero!');
+      if (hero.isInvulnerable) return;
       hero.takeDamage(1);
     }
   }
@@ -463,7 +509,6 @@ export class Level1 extends Phaser.Scene {
   spawnCrocodile(x, y) {
     const croc = new Crocodile(this, x, y);
     this.crocodilesGroup.add(croc);
-    console.log(`Spawned crocodile at (${x}, ${y})`);
     return croc;
   }
 
@@ -471,7 +516,6 @@ export class Level1 extends Phaser.Scene {
     if (!croc || !croc.active) return;
 
     if (croc.state === 'STUNNED') {
-      console.log('Player hit stunned crocodile, launching!');
       croc.launchFlying(hero.x);
     }
   }
@@ -480,26 +524,10 @@ export class Level1 extends Phaser.Scene {
     if (!weapon || !weapon.active) return;
     if (!croc || !croc.active || croc.isDead) return;
 
-    console.log('Weapon hit crocodile!');
 
     if (weapon.destroy) weapon.destroy();
 
     if (croc.takeDamage) croc.takeDamage();
-  }
-
-  createPlatformObjects() {
-    // TODO: Implement new platform system with PlatformManager
-    // this.platformObjects.clear();
-
-    // this.platforms.forEachTile((tile) => {
-    //   if (tile.index > 0) {
-    //     const key = `${tile.x}_${tile.y}`;
-    //     const platform = new Platform(this, tile);
-    //     this.platformObjects.set(key, platform);
-    //   }
-    // });
-
-    // console.log(`Plataformas creadas: ${this.platformObjects.size}`);
   }
 
   createBall() {
@@ -539,7 +567,6 @@ export class Level1 extends Phaser.Scene {
         x: Math.abs(ball._prevVelocity.x) || 150,
         y: Math.abs(ball._prevVelocity.y) || 400
       };
-      // console.log('Stored constant bounce velocity:', ball._constantBounceVel);
     }
 
     // Rebote perfecto: usar velocidad constante guardada
@@ -578,8 +605,8 @@ export class Level1 extends Phaser.Scene {
   bounceOffHero(hero, ball) {
     if (!ball || !ball.body || !hero || !hero.body) return;
 
-    // El JUGADOR recibe daño cuando toca la pelota
-    if (this.isTimeFrozen) return; // No daño durante time freeze
+    // El JUGADOR recibe daño cuando toca la pelota, solo si NO es invulnerable
+    if (hero.isInvulnerable) return;
     hero.takeDamage(1);
   }
 
@@ -652,6 +679,11 @@ export class Level1 extends Phaser.Scene {
       });
     }
 
+    // HERO INVULNERABLE DURANTE FREEZE
+    if (this.hero) {
+      this.hero.isInvulnerable = true;
+    }
+
     // Birds
     if (this.birdsGroup) {
       this.birdsGroup.getChildren().forEach(bird => {
@@ -680,14 +712,24 @@ export class Level1 extends Phaser.Scene {
       if (!obj || !obj.body) return;
       if (!obj._isFrozen) return;
       obj._isFrozen = false;
-      const v = obj._frozenVel || { x: 0, y: 0 };
-      obj.body.setVelocity(v.x, v.y);
+      // Si tiene método restoreTrajectoryAfterFreeze, llamarlo
+      if (typeof obj.restoreTrajectoryAfterFreeze === 'function') {
+        obj.restoreTrajectoryAfterFreeze();
+      } else {
+        const v = obj._frozenVel || { x: 0, y: 0 };
+        obj.body.setVelocity(v.x, v.y);
+      }
       obj._frozenVel = null;
     };
 
     this.ballsGroup?.getChildren().forEach(restore);
     this.birdsGroup?.getChildren().forEach(restore);
     this.crocodilesGroup?.getChildren().forEach(restore);
+
+    // HERO VUELVE A SER VULNERABLE
+    if (this.hero) {
+      this.hero.isInvulnerable = false;
+    }
   }
 
   _slowGroups(multiplier) {
@@ -932,7 +974,6 @@ export class Level1 extends Phaser.Scene {
 
   onWeaponHitsBird(weapon, bird) {
     if (weapon && weapon.active && bird && bird.active && !bird.isDead) {
-      console.log('Weapon hit bird!');
       
       if (weapon.destroy) weapon.destroy();
       
@@ -955,6 +996,19 @@ export class Level1 extends Phaser.Scene {
   onWeaponHitsBall(weapon, ball) {
     if (weapon && weapon.active && ball && ball.active) {
       if (weapon.destroy) weapon.destroy();
+      // Remove ball from group before destroying
+      if (this.ballsGroup && this.ballsGroup.contains(ball)) {
+        this.ballsGroup.remove(ball, true, true);
+        console.log(`[BALL REMOVED FROM GROUP] Remaining: ${this.ballsGroup.getChildren().length}`);
+        // Check group length for level completion
+        if (this.ballsGroup.getChildren().length === 0 && !this._levelCompleted) {
+          this._levelCompleted = true;
+          console.log('Nivel 1 completado, pasando a Nivel 2');
+          this.scene.start('Level2');
+        }
+      }
+      // Play ball pop sound
+      if (this.sound) this.sound.play('burbuja_pop', { volume: 0.7 });
       if (ball.takeDamage) ball.takeDamage();
     }
   }

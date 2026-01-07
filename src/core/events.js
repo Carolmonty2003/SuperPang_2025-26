@@ -13,6 +13,7 @@ export const EVENTS = {
         WEAPON_UPGRADED: 'hero:weapon_upgraded'
     },
     enemy: {
+        BALL_CREATED: 'enemy:ball_created',
         BALL_DESTROYED: 'enemy:ball_destroyed'
     },
     items: {

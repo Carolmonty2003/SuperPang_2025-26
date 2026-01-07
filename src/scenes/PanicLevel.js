@@ -5,7 +5,9 @@ import { WallManager } from '../objects/WallManager.js';
 
 import { HugeBall } from '../entities/enemies/balls/normal/HugeBall.js';
 import { BigBall } from '../entities/enemies/balls/normal/BigBall.js';
+import { MidBall } from '../entities/enemies/balls/normal/MidBall.js';
 import { HexBigBall } from '../entities/enemies/balls/hexagonal/HexBigBall.js';
+import { HexMidBall } from '../entities/enemies/balls/hexagonal/HexMidBall.js';
 import { SpecialBigBall } from '../entities/enemies/balls/special/SpecialBigBall.js';
 import { SpecialMidBall } from '../entities/enemies/balls/special/SpecialMidBall.js';
 import { BALL_COLORS } from '../entities/enemies/balls/BallConstants.js';
@@ -96,95 +98,114 @@ export class PanicLevel extends Phaser.Scene {
       frameWidth: 34,  // 68 / 2 frames
       frameHeight: 28
     });
+
+    // --- CARGA DE AUDIO ---
+    this.load.setPath('assets/audio');
+    this.load.audio('bandaSonora', 'bandaSonora.mp3');
+    this.load.audio('disparo', 'disparo.mp3');
   }
 
   create() {
+    if (this.game.audioManager) {
+      this.game.audioManager.stopMusic();
+      this.game.audioManager.playMusic(this, 'bandaSonora', { loop: true, volume: 0.5 });
+    }
     // --- MAPA ---
     const map = this.make.tilemap({ key: 'map_marco' });
     const tileset = map.addTilesetImage('tileset_muros', 'tileset_muros_img');
-    
-    // --- WALL MANAGER (floor/ceiling layers) ---
+    // --- WALL MANAGER ---
     this.wallManager = new WallManager(this, map, {
       floorLayer: 'layer_floor',
       ceilingLayer: 'layer_ceiling',
       tilesetName: tileset
     });
-
-    // Mundo físico solo hasta la altura del mapa (ej: 832)
     this.physics.world.bounds.width = map.widthInPixels;
     this.physics.world.bounds.height = map.heightInPixels;
-
-    // --- FONDO SOLO EN 0–alturaMapa ---
-    const bg = this.add.image(0, 0, 'backgrounds', 0).setOrigin(0, 0);
-    bg.setDisplaySize(GAME_SIZE.WIDTH, map.heightInPixels);
-
-    // el fondo va al fondo de todo
-    bg.setDepth(-2);
-
+    // --- FONDO ---
+    this.bgFrame = 0;
+    this.bgMaxFrame = 3; // Cambia según tu spritesheet
+    this.bg = this.add.image(0, 0, 'backgrounds', this.bgFrame).setOrigin(0, 0);
+    this.bg.setDisplaySize(GAME_SIZE.WIDTH, map.heightInPixels);
+    this.bg.setDepth(-2);
     this.cameras.main.setBackgroundColor(0x000000);
-
-    // --- SPECIAL EFFECTS STATE ---
-    this.timeStopUntil = 0; // Timestamp when time stop ends
-    this.isFrozen = false;  // Quick check flag
-    this.burstClearActive = false; // Track if burst clear is active
-    this.markedForBurst = new Set(); // Balls marked for burst destruction
-
     // --- GRUPOS ---
     this.ballsGroup = this.physics.add.group();
-    this.bullets = this.add.group({ runChildUpdate: true }); 
-   
-    // Weapon overlap with ceiling (destroys bullets)
-    this.wallManager.addWeaponOverlap(this.bullets, (bullet) => {
-      if (bullet && bullet.active) bullet.destroy();
-    });
-    
+    this.bullets = this.add.group({ runChildUpdate: true });
+    this.wallManager.addWeaponOverlap(this.bullets, (bullet) => { if (bullet && bullet.active) bullet.destroy(); });
     // --- HÉROE ---
     const startX = map.widthInPixels / 2;
     const startY = map.heightInPixels - 64;
-    
     this.hero = new Hero(this, startX, startY, 'player');
-    
-    // Configuración del héroe (como en Level1)
     this.hero.body.immovable = true;
     this.hero.body.pushable = false;
     this.hero.body.moves = true;
     this.hero.body.setMass(10000);
-    this.hero.body.setGravityY(600); // Añadir gravedad para que no atraviese el suelo
-    
+    this.hero.body.setGravityY(600);
     this.wallManager.addHeroCollider(this.hero);
-
-    // --- COLISIONES BOLAS ---
     this.wallManager.addGroupCollider(this.ballsGroup, this.bounceBall, this);
-    // Store overlap collider to enable/disable during time stop
     this.heroBallOverlap = this.physics.add.overlap(this.ballsGroup, this.hero, this.onHeroHitBall, null, this);
-
-    // --- BOLA INICIAL ---
-    // In panic mode, spawn 1 special ball + mix of normal and hexagonal balls for testing
-    if (this.gameMode === 'panic') {
-      // One special ball (Clock/Star)
-      this.createBall(600, 180, 'special');
-      // Two normal balls
-      this.createBall(200, 150, 'normal');
-      this.createBall(400, 200, 'normal');
-      // Two hexagonal balls
-      this.createBall(800, 220, 'hexagonal');
-      this.createBall(1000, 170, 'hexagonal');
-    } else {
-      this.createBall();
-    }
-   
-    // --- HUD EN LA BANDA INFERIOR ---
-    this.hud = new Hud(this, {
-      uiTop: map.heightInPixels, // empieza justo debajo del mapa
-      mode: 'HARPOON',
-    });
-
+    // --- HUD CON BARRA DE EXP ---
+    this.hud = new Hud(this, { uiTop: map.heightInPixels, mode: 'PANIC' });
+    this.hud.onExpLevelUp = (level) => {
+      this.advanceBackground();
+      this.spawnBall();
+    };
     // --- PAUSA CON ESC ---
     this.input.keyboard.on('keydown-ESC', () => {
       this.scene.launch('PauseMenu', { from: 'PanicLevel' });
       this.scene.pause();
       this.scene.bringToTop('PauseMenu');
     });
+    // --- INICIAR GENERACIÓN PROGRESIVA ---
+    this.time.addEvent({ delay: 2000, loop: true, callback: () => this.progressiveBallSpawn() });
+    // --- SCORE GLOBAL ---
+    this.globalScore = 0;
+  }
+
+  progressiveBallSpawn() {
+    if (this.ballsGroup.countActive(true) === 0) {
+      this.spawnBall();
+    }
+    // Simula experiencia progresiva
+    if (this.hud && this.hud.addExp) {
+      this.hud.addExp(10); // Sube 10 puntos cada ciclo
+    }
+  }
+
+  spawnBall() {
+    // Elige tipo y tamaño aleatorio (normal/hexagonal, mid o big)
+    const types = [ 'normal', 'hexagonal' ];
+    const sizes = [ 'mid', 'big' ];
+    const type = types[Math.floor(Math.random() * types.length)];
+    const size = sizes[Math.floor(Math.random() * sizes.length)];
+    let ball;
+    const x = Phaser.Math.Between(100, GAME_SIZE.WIDTH - 100);
+    const y = Phaser.Math.Between(100, GAME_SIZE.HEIGHT - 200);
+    if (type === 'normal') {
+      if (size === 'big') ball = new BigBall(this, x, y, 1, BALL_COLORS.RED);
+      else ball = new MidBall(this, x, y, 1, BALL_COLORS.BLUE);
+    } else {
+      if (size === 'big') ball = new HexBigBall(this, x, y, 1, 1, BALL_COLORS.GREEN);
+      else ball = new HexMidBall(this, x, y, 1, 1, BALL_COLORS.YELLOW);
+    }
+    this.ballsGroup.add(ball);
+    // Drop aleatorio de powerup
+    if (Math.random() < 0.3) { // 30% probabilidad
+      this.time.delayedCall(500, () => {
+        if (this.dropRandomPowerUp) this.dropRandomPowerUp(ball.x, ball.y);
+      });
+    }
+  }
+
+  advanceBackground() {
+    this.bgFrame = (this.bgFrame + 1) % (this.bgMaxFrame + 1);
+    this.bg.setFrame(this.bgFrame);
+  }
+
+  dropRandomPowerUp(x, y) {
+    // Implementa aquí la lógica para crear un powerup en (x, y)
+    // Ejemplo:
+    // new PowerUpBomb(this, x, y);
   }
 
   createBall(x = null, y = null, ballType = null) {
@@ -347,15 +368,37 @@ export class PanicLevel extends Phaser.Scene {
     if (weapon && weapon.active && ball && ball.active) {
       if (weapon.destroy) weapon.destroy();
       if (ball.takeDamage) ball.takeDamage();
+      // Sumar experiencia al HUD al destruir bola
+      if (this.hud && this.hud.addExp) {
+        this.hud.addExp(25);
+      }
+      // Sumar score global y generar special ball cada 500
+      this.globalScore += 25;
+      if (this.globalScore % 500 === 0) {
+        this.spawnSpecialBall();
+      }
     }
+  }
+
+  spawnSpecialBall() {
+    const x = Phaser.Math.Between(100, GAME_SIZE.WIDTH - 100);
+    const y = Phaser.Math.Between(100, GAME_SIZE.HEIGHT - 200);
+    const specialTypes = [ 'specialBig', 'specialMid' ];
+    const type = specialTypes[Math.floor(Math.random() * specialTypes.length)];
+    let ball;
+    if (type === 'specialBig') ball = new SpecialBigBall(this, x, y, 1);
+    else ball = new SpecialMidBall(this, x, y, 1);
+    this.ballsGroup.add(ball);
   }
 
   onFixedHarpoonHitBall(fixedHarpoon, ball) {
     if (fixedHarpoon && fixedHarpoon.active && ball && ball.active) {
-      // Call the onBallHit method on the fixed harpoon to destroy it
       if (fixedHarpoon.onBallHit) fixedHarpoon.onBallHit();
-      // Damage the ball
       if (ball.takeDamage) ball.takeDamage();
+      // Sumar experiencia al HUD al destruir bola
+      if (this.hud && this.hud.addExp) {
+        this.hud.addExp(25);
+      }
     }
   }
 
@@ -577,5 +620,12 @@ export class PanicLevel extends Phaser.Scene {
       ease: 'Power2',
       onComplete: () => particle.destroy()
     });
+  }
+
+  shutdown() {
+    if (this.game.audioManager) {
+      this.game.audioManager.stopMusic();
+    }
+    // ...existing code...
   }
 }

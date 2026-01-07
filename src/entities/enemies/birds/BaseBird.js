@@ -269,6 +269,11 @@ export class BaseBird extends Phaser.Physics.Arcade.Sprite {
     this.body.setVelocityX(0);
     this.setTint(0xff0000);
     this.setFrame(0);
+
+    // Play pop sound when bird is hit
+    if (this.scene && this.scene.sound) {
+      this.scene.sound.play('burbuja_pop', { volume: 0.7 });
+    }
   }
 
   showFloatingScore() {

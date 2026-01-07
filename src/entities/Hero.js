@@ -165,6 +165,11 @@ export class Hero extends HeroBase {
         this.setVelocityX(0);
         this.play('shoot', true);
 
+        // Play disparo.mp3 sound when player fires in Hero.js.
+        if (this.scene && this.scene.sound) {
+          this.scene.sound.play('disparo', { volume: 0.7 });
+        }
+
         if (this.weaponType === HERO_WEAPON.HARPOON) this.shootHarpoon();
         else if (this.weaponType === HERO_WEAPON.FIXED_HARPOON) this.shootFixedHarpoon();
         else this.shootGunFan();
@@ -211,7 +216,6 @@ export class Hero extends HeroBase {
     takeDamage(amount = 1) {
         // SHIELD FIRST
         if (this.hasShield) {
-            console.log('Shield blocked damage!');
 
             this.hasShield = false;
 
@@ -264,10 +268,12 @@ export class Hero extends HeroBase {
             return;
         }
 
-        if (this.isInvulnerable) return;
+        // Si está invulnerable (por freeze o powerup), NO hacer nada
+        if (this.isInvulnerable) {
+            return;
+        }
 
         this.lives -= amount;
-        console.log(`Hero took ${amount} damage! Lives: ${this.lives}`);
 
         this.scene.game.events.emit(EVENTS.hero.DAMAGED, this.lives);
 
@@ -343,7 +349,6 @@ export class Hero extends HeroBase {
     }
 
     die() {
-        console.log('Hero died! Game Over!');
         this.scene.game.events.emit(EVENTS.hero.DIED);
         this.scene.game.events.emit(EVENTS.game.GAME_OVER);
     }
@@ -351,12 +356,10 @@ export class Hero extends HeroBase {
     setDoubleHarpoon(enabled) {
         this.maxHarpoonsActive = enabled ? 2 : 1;
         const status = enabled ? 'ENABLED' : 'DISABLED';
-        console.log(`Double Harpoon ${status} - Max harpoons: ${this.maxHarpoonsActive}`);
     }
 
     addScore(points) {
         this.score += points;
-        console.log(`Score +${points} = ${this.score}`);
         this.scene.game.events.emit(EVENTS.game.SCORE_CHANGE, points);
     }
 
@@ -366,19 +369,15 @@ export class Hero extends HeroBase {
         const actualGain = this.lives - oldLives;
 
         if (actualGain > 0) {
-            console.log(`Lives +${actualGain} = ${this.lives}/${this.maxLives}`);
             this.scene.game.events.emit(EVENTS.hero.LIFE_GAINED, this.lives);
         } else {
-            console.log(`Lives already at maximum (${this.maxLives})`);
         }
     }
 
     setShield(duration = SHIELD_CONFIG.DURATION) {
         if (this.shieldTimer) {
             this.shieldTimer.destroy();
-            console.log('Shield refreshed (timer reset)');
         } else {
-            console.log('Shield activated');
         }
 
         this.hasShield = true;
@@ -414,7 +413,6 @@ export class Hero extends HeroBase {
             this.setAlpha(1);
 
             this.shieldTimer = null;
-            console.log('Shield expired');
         });
     }
 
@@ -425,10 +423,7 @@ export class Hero extends HeroBase {
 
         this.weaponStats = WEAPON_LEVELS[this.weaponLevel];
 
-        console.log(`Weapon upgraded to Level ${this.weaponLevel}: ${this.weaponStats.name}`);
-        console.log(
-            `Stats: ${this.weaponStats.shots} shots, ${this.weaponStats.speedMultiplier}x speed, ${this.weaponStats.spread}° spread`
-        );
+        // Stats: ${this.weaponStats.shots} shots, ${this.weaponStats.speedMultiplier}x speed, ${this.weaponStats.spread}° spread
 
         // feedback visual sin pisar el azul del escudo
         if (!this.hasShield) {
@@ -464,6 +459,5 @@ export class Hero extends HeroBase {
         this.clearTint();
         this.setAlpha(1);
 
-        console.log('Power-ups reset');
     }
 }

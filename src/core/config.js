@@ -7,7 +7,7 @@ import { GAME_SIZE, PHYSICS, RENDER, SCALE } from "../core/constants.js";
  * renderizado, escenas, etc.), utilizando las constantes definidas en core/constants.js
  */
 
-export function buildConfig({ scenes = [] } = {}) 
+window.buildConfig = function({ scenes = [] } = {}) 
 {
     return {
         type: Phaser.AUTO,

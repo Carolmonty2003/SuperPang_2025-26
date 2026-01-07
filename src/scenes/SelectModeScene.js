@@ -10,6 +10,8 @@ export class SelectModeScene extends Phaser.Scene {
       "selectModeBg",
       "assets/sprites/ui/SelectModeSceneSprite.png"
     );
+    this.load.setPath('assets/audio');
+    this.load.audio('inicio', 'inicio.mp3');
   }
 
   create() {
@@ -28,6 +30,11 @@ export class SelectModeScene extends Phaser.Scene {
     const scaleY = cam.height / bg.height;
     const scale = Math.min(scaleX, scaleY);
     bg.setScale(scale);
+
+    if (this.game.audioManager) {
+      this.game.audioManager.stopMusic();
+      this.game.audioManager.playMusic(this, 'inicio', { loop: true, volume: 0.5 });
+    }
 
     // ===== ZONAS CLICABLES encima de los recuadros =====
     // Ajusta estos valores si tu imagen no coincide perfecto.
@@ -89,6 +96,12 @@ export class SelectModeScene extends Phaser.Scene {
     this.input.keyboard.on("keydown-ESC", () => {
       this.scene.start("MainMenuScene");
     });
+  }
+
+  shutdown() {
+    if (this.game.audioManager) {
+      this.game.audioManager.stopMusic();
+    }
   }
 }
 

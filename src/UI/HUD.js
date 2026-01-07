@@ -94,6 +94,20 @@ export class Hud {
       .setOrigin(1, 0.5);
 
     // ==========================
+    //   BARRA DE EXPERIENCIA (solo PanicMode)
+    // ==========================
+    if (mode === 'PANIC') {
+      this.expBarBg = scene.add.rectangle(GAME_SIZE.WIDTH / 2, this.uiTop + 10, 200, 20, 0x333333, 1).setOrigin(0.5, 0);
+      this.expBar = scene.add.rectangle(GAME_SIZE.WIDTH / 2, this.uiTop + 10, 0, 20, 0x00ff00, 1).setOrigin(0.5, 0);
+      this.expBarLevelText = scene.add.text(GAME_SIZE.WIDTH / 2, this.uiTop + 35, 'Nivel 1', {
+        fontFamily: 'Arial', fontSize: '18px', color: '#ffffff'
+      }).setOrigin(0.5, 0);
+      this.exp = 0;
+      this.expMax = 100;
+      this.expLevel = 1;
+    }
+
+    // ==========================
     //   LISTENERS DE EVENTOS
     // ==========================
     this.events.on(EVENTS.game.SCORE_CHANGE, this.onScoreChange, this);
@@ -156,6 +170,35 @@ export class Hud {
     this.modeText.setText(`MODE: ${mode}`);
   }
 
+  // ===== EXPERIENCIA (solo PanicMode) =====
+  setExp(value) {
+    if (!this.expBar) return;
+    this.exp = Math.max(0, Math.min(this.expMax, value));
+    this.expBar.width = (this.exp / this.expMax) * 200;
+    this.expBarBg.width = 200;
+    this.expBar.x = this.expBarBg.x;
+    this.expBarBg.x = GAME_SIZE.WIDTH / 2;
+    this.expBarLevelText.setText(`Nivel ${this.expLevel}`);
+  }
+  addExp(delta) {
+    if (!this.expBar) return;
+    this.setExp(this.exp + delta);
+    if (this.exp >= this.expMax) {
+      this.expLevel++;
+      this.exp = 0;
+      this.setExp(this.exp);
+      this.expBarLevelText.setText(`Nivel ${this.expLevel}`);
+      if (this.onExpLevelUp) this.onExpLevelUp(this.expLevel);
+    }
+  }
+  resetExp() {
+    if (!this.expBar) return;
+    this.exp = 0;
+    this.expLevel = 1;
+    this.setExp(this.exp);
+    this.expBarLevelText.setText(`Nivel ${this.expLevel}`);
+  }
+
   // ===== LIMPIEZA =====
   destroy() {
     if (this.destroyed) return;
@@ -175,6 +218,9 @@ export class Hud {
     this.extraLivesText?.destroy();
     this.modeText?.destroy();
     this.scoreText?.destroy();
+    this.expBar?.destroy();
+    this.expBarBg?.destroy();
+    this.expBarLevelText?.destroy();
   }
 }
 

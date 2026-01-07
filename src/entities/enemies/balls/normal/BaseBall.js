@@ -8,7 +8,11 @@ export class BaseBall extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this);
     scene.physics.world.enable(this);
 
-    this.nextBallType = nextBallType;
+    
+
+    // Guardar referencia a la escena para splits/async (por si Phaser limpia this.scene)
+    this._sceneRef = scene;
+this.nextBallType = nextBallType;
     this.speedX = speedX;
     this.ballColor = color; // Guardar el color para heredarlo
     this.scoreValue = scoreValue; // Puntos que da esta bola
@@ -56,6 +60,10 @@ export class BaseBall extends Phaser.Physics.Arcade.Sprite {
     
     // Guardar velocidad previa para el rebote
     this._prevVelocity = { x: this.speedX, y: 0 };
+    // Emit BALL_CREATED event
+    if (scene && scene.game && scene.game.events) {
+      scene.game.events.emit(EVENTS.enemy.BALL_CREATED, this);
+    }
   }
   
   preUpdate(time, delta) {
@@ -83,25 +91,36 @@ export class BaseBall extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
-  takeDamage() {
+  async takeDamage() {
     // Mostrar puntaje flotante en azul
     this.showFloatingScore();
-    
     // Dar puntos por destruir esta bola
     if (this.scene && this.scene.game && this.scene.game.events) {
       this.scene.game.events.emit(EVENTS.game.SCORE_CHANGE, this.scoreValue);
     }
-    
-    // Si tiene un tipo de bola siguiente, crear 2 bolas más pequeñas ANTES de destruir
+    // Split si corresponde
     if (this.nextBallType) {
-      this.split();
+      await this.split();
     }
-    
-    // Destruir la bola actual DESPUÉS de crear las nuevas
+    // Reproducir audio pop
+    if (this.scene && this.scene.sound) {
+      this.scene.sound.play('burbuja_pop', { volume: 0.7 });
+    }
+    // Eliminar del grupo antes de destruir
+    if (this.scene && this.scene.ballsGroup && this.scene.ballsGroup.contains(this)) {
+      this.scene.ballsGroup.remove(this, true, true);
+    }
+    // Emit BALL_DESTROYED event antes de destruir
+    if (this.scene && this.scene.game && this.scene.game.events) {
+      this.scene.game.events.emit(EVENTS.enemy.BALL_DESTROYED, this);
+    }
+    // Destruir la bola actual
     this.destroy();
   }
 
   showFloatingScore() {
+    // Prevent crash if scene.add is not available (scene may be destroyed)
+    if (!this.scene || !this.scene.add) return;
     // Crear texto flotante con el puntaje
     const scoreText = this.scene.add.text(this.x, this.y, `+${this.scoreValue}`, {
       fontSize: '32px',
@@ -111,10 +130,8 @@ export class BaseBall extends Phaser.Physics.Arcade.Sprite {
       stroke: '#FFFFFF',
       strokeThickness: 3
     });
-    
     scoreText.setOrigin(0.5, 0.5);
     scoreText.setDepth(100); // Por encima de todo
-    
     // Animación: flota hacia arriba y desaparece
     this.scene.tweens.add({
       targets: scoreText,
@@ -128,18 +145,12 @@ export class BaseBall extends Phaser.Physics.Arcade.Sprite {
     });
   }
 
-  split() {
-    // Import dinámico de las clases de bolas
-    // Esto evita dependencias circulares
-    const scene = this.scene;
+  async split() {
+    const scene = this.scene || this._sceneRef;
     const x = this.x;
     const y = this.y;
-    const color = this.ballColor; // Heredar el color a las bolas hijas
-
-    // Crear 2 bolas más pequeñas
+    const color = this.ballColor;
     let ball1, ball2;
-
-    // Lazy import para evitar dependencias circulares
     const createBalls = async () => {
       switch (this.nextBallType) {
         case "big":
@@ -165,13 +176,13 @@ export class BaseBall extends Phaser.Physics.Arcade.Sprite {
         default:
           return;
       }
-
-      // Añadir las bolas al grupo de la escena
       if (scene.ballsGroup) {
         scene.ballsGroup.add(ball1);
         scene.ballsGroup.add(ball2);
-        
-        // Mark split balls if parent was marked for burst
+        if (scene.game && scene.game.events) {
+          scene.game.events.emit(EVENTS.enemy.BALL_CREATED, ball1);
+          scene.game.events.emit(EVENTS.enemy.BALL_CREATED, ball2);
+        }
         if (this._markedForBurst && scene.burstClearActive) {
           ball1._spawnedFromMarkedBall = true;
           ball2._spawnedFromMarkedBall = true;
@@ -181,36 +192,26 @@ export class BaseBall extends Phaser.Physics.Arcade.Sprite {
           scene.markedForBurst.add(ball2);
         }
       }
-
-      // Verificar si hay time freeze activo (heredar del padre)
       const parentWasFrozen = this._isFrozen;
-
-      // Darles un impulso inicial: una a la izquierda, otra a la derecha
-      // Y un pequeño impulso hacia arriba (suave)
       const horizontalSpeed = Math.abs(ball1.speedX);
       const upwardImpulse = -200;
-
-      ball1.body.setVelocity(-horizontalSpeed, upwardImpulse);
-      ball2.body.setVelocity(horizontalSpeed, upwardImpulse);
-      
-      // Si el padre estaba congelado, congelar las bolas nuevas también
       if (parentWasFrozen) {
-        [ball1, ball2].forEach(ball => {
-          ball._frozenVelocity = {
-            x: ball.body.velocity.x,
-            y: ball.body.velocity.y
-          };
-          ball._frozenGravity = ball.body.gravity.y;
-          
+        [ball1, ball2].forEach((ball, i) => {
           ball.body.setVelocity(0, 0);
           ball.body.setGravityY(0);
           ball.body.setAllowGravity(false);
           ball.setTint(0x00FFFF);
           ball._isFrozen = true;
+          ball._pendingUnfreezeVelocity = {
+            x: i === 0 ? -horizontalSpeed : horizontalSpeed,
+            y: upwardImpulse
+          };
         });
+      } else {
+        ball1.body.setVelocity(-horizontalSpeed, upwardImpulse);
+        ball2.body.setVelocity(horizontalSpeed, upwardImpulse);
       }
     };
-
-    createBalls();
+    await createBalls();
   }
 }

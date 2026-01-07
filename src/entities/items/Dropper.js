@@ -97,7 +97,6 @@ export class Dropper {
 
     this.totalWeight = this.lootTable.reduce((sum, entry) => sum + entry.weight, 0);
 
-    console.log(`Dropper initialized: ${this.lootTable.length} item types, ${this.totalWeight} total weight`);
   }
 
   dropFrom(entity, x, y, options = {}) {
@@ -106,7 +105,6 @@ export class Dropper {
     }
 
     if (this.activeItems.getLength() >= this.maxItems) {
-      console.log('Drop cancelled: max items on screen');
       return null;
     }
 
@@ -143,7 +141,6 @@ export class Dropper {
         this.activeItems.remove(item, true);
       });
 
-      console.log(`Dropped ${itemType}${variant ? ` (${variant})` : ''} at (${x}, ${y})`);
     }
 
     return item;
@@ -224,6 +221,5 @@ export class Dropper {
   setLootTable(lootTable) {
     this.lootTable = lootTable;
     this.totalWeight = this.lootTable.reduce((sum, entry) => sum + entry.weight, 0);
-    console.log(`Loot table updated: ${this.totalWeight} total weight`);
   }
 }

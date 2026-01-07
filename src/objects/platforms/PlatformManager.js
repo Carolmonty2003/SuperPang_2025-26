@@ -27,7 +27,14 @@ export class PlatformManager {
     return platform;
   }
 
+  // Robust platform creation: evita duplicados y tiles invisibles
   createBreakablePlatform(x, y, pattern, color = 0xFFFFFF, dropItem = null) {
+    // Verifica que no hay plataforma previa en esos tiles
+    const tilesToCheck = pattern.map((_, i) => this.layer.getTileAt(x + i, y));
+    if (tilesToCheck.some(t => t && t.properties && t.properties.platform)) {
+      console.warn('Ya existe una plataforma en estos tiles, se omite la creación.');
+      return null;
+    }
     const platform = new PlatformBreakable(this.scene, {
       x, y, pattern, color,
       map: this.map,

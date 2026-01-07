@@ -58,13 +58,8 @@ export class PowerUpTimeFreeze extends BaseItem {
       onComplete: () => freezeText.destroy()
     });
     
-    // Apply (and stack) time freeze effect using the scene manager
-    if (scene && typeof scene.addTimeFreeze === 'function') {
-      scene.addTimeFreeze(ITEMS.DURATION.TIME_FREEZE);
-    } else {
-      // Fallback (older scenes)
-      this.freezeAllBalls(scene, ITEMS.DURATION.TIME_FREEZE);
-    }
+    // Apply time freeze effect
+    this.freezeAllBalls(scene, ITEMS.DURATION.TIME_FREEZE);
     
     // Optional: Camera flash effect
     scene.cameras.main.flash(200, 100, 200, 255);
@@ -80,61 +75,44 @@ export class PowerUpTimeFreeze extends BaseItem {
    */
   freezeAllBalls(scene, duration) {
     let totalFrozen = 0;
-    
     // Freeze balls
     if (scene.ballsGroup) {
       const balls = scene.ballsGroup.getChildren();
       totalFrozen += balls.length;
-      
       balls.forEach(ball => {
-        if (!ball || !ball.active || !ball.body) return;
-        
-        ball._frozenVelocity = {
-          x: ball.body.velocity.x,
-          y: ball.body.velocity.y
-        };
+        if (!ball || !ball.active || !ball.body || ball._isFrozen) return;
+        ball._frozenVelocity = { x: ball.body.velocity.x, y: ball.body.velocity.y };
         ball._frozenGravity = ball.body.gravity.y;
-        
         ball.body.setVelocity(0, 0);
         ball.body.setGravityY(0);
         ball.body.setAllowGravity(false);
+        ball.body.moves = false;
         ball.setTint(0x00FFFF);
         ball._isFrozen = true;
       });
     }
-    
     // Freeze birds
     if (scene.birdsGroup) {
       const birds = scene.birdsGroup.getChildren();
       totalFrozen += birds.length;
-      
       birds.forEach(bird => {
-        if (!bird || !bird.active || !bird.body) return;
-        
-        bird._frozenVelocity = {
-          x: bird.body.velocity.x,
-          y: bird.body.velocity.y
-        };
+        if (!bird || !bird.active || !bird.body || bird._isFrozen) return;
+        bird._frozenVelocity = { x: bird.body.velocity.x, y: bird.body.velocity.y };
         bird._frozenGravity = bird.body.gravity.y;
-        
-        // Store freeze time to adjust startTime later
         bird._freezeTime = scene.time.now;
-        
         bird.body.setVelocity(0, 0);
         bird.body.setGravityY(0);
         bird.body.setAllowGravity(false);
+        bird.body.moves = false;
         bird.setTint(0x00FFFF);
         bird._isFrozen = true;
       });
     }
-    
     console.log(`Freezing ${totalFrozen} entities for ${duration}ms`);
-    
     if (totalFrozen === 0) {
       console.log('No entities to freeze');
       return;
     }
-    
     // Unfreeze after duration
     scene.time.delayedCall(duration, () => {
       this.unfreezeAllBalls(scene);
@@ -149,21 +127,22 @@ export class PowerUpTimeFreeze extends BaseItem {
     // Unfreeze balls
     if (scene.ballsGroup) {
       const balls = scene.ballsGroup.getChildren();
-      
       balls.forEach(ball => {
         if (!ball || !ball.active || !ball.body || !ball._isFrozen) return;
-        
-        if (ball._frozenVelocity) {
+        // Restaurar gravedad SIEMPRE en bolas normales
+        if (ball.constructor.name.endsWith('Ball') && !ball.constructor.name.startsWith('Hex')) {
+          ball.body.setGravityY(200);
+          ball.body.setAllowGravity(true);
+        }
+        // Si la bola fue creada durante freeze y tiene velocidad pendiente, aplicarla
+        if (ball._pendingUnfreezeVelocity) {
+          ball.body.setVelocity(ball._pendingUnfreezeVelocity.x, ball._pendingUnfreezeVelocity.y);
+          delete ball._pendingUnfreezeVelocity;
+        } else if (ball._frozenVelocity) {
           ball.body.setVelocity(ball._frozenVelocity.x, ball._frozenVelocity.y);
           delete ball._frozenVelocity;
         }
-        
-        if (ball._frozenGravity !== undefined) {
-          ball.body.setGravityY(ball._frozenGravity);
-          ball.body.setAllowGravity(true);
-          delete ball._frozenGravity;
-        }
-        
+        ball.body.moves = true;
         ball.clearTint();
         if (ball.ballColor) {
           ball.setTint(ball.ballColor);
@@ -171,37 +150,30 @@ export class PowerUpTimeFreeze extends BaseItem {
         ball._isFrozen = false;
       });
     }
-    
     // Unfreeze birds
     if (scene.birdsGroup) {
       const birds = scene.birdsGroup.getChildren();
-      
       birds.forEach(bird => {
         if (!bird || !bird.active || !bird.body || !bird._isFrozen) return;
-        
-        // Adjust startTime to account for frozen duration
         if (bird.startTime !== undefined && bird._freezeTime !== undefined) {
           const frozenDuration = scene.time.now - bird._freezeTime;
           bird.startTime += frozenDuration;
           delete bird._freezeTime;
         }
-        
         if (bird._frozenVelocity) {
           bird.body.setVelocity(bird._frozenVelocity.x, bird._frozenVelocity.y);
           delete bird._frozenVelocity;
         }
-        
         if (bird._frozenGravity !== undefined) {
           bird.body.setGravityY(bird._frozenGravity);
           bird.body.setAllowGravity(true);
           delete bird._frozenGravity;
         }
-        
+        bird.body.moves = true;
         bird.clearTint();
         bird._isFrozen = false;
       });
     }
-    
     console.log('Time freeze ended');
   }
 }

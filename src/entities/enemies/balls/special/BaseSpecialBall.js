@@ -138,36 +138,23 @@ export class BaseSpecialBall extends Phaser.Physics.Arcade.Sprite {
   }
 
   takeDamage() {
-    // Prevent multiple triggers
-    if (this.isConsumed || !this.active) return;
-    this.isConsumed = true;
-    
-    // Mostrar puntaje flotante en azul
     this.showFloatingScore();
-    
-    // Determine effect based on current frame/state
-    const effectType = this.currentVariant === SPECIAL_BALL_VARIANTS.CLOCK ? 'CLOCK' : 'STAR';
-    
-    // Award base score
     if (this.scene && this.scene.game && this.scene.game.events) {
       this.scene.game.events.emit(EVENTS.game.SCORE_CHANGE, this.scoreValue);
     }
-    
-    // Trigger special effect based on state
-    if (effectType === 'CLOCK') {
-      this.triggerClockEffect();
-    } else {
-      this.triggerStarEffect();
+    // Reproducir audio pop
+    if (this.scene && this.scene.sound) {
+      this.scene.sound.play('burbuja_pop', { volume: 0.7 });
     }
-    
-    // Special balls don't split - just destroy with effect
+    // Eliminar del grupo antes de destruir
+    if (this.scene && this.scene.ballsGroup && this.scene.ballsGroup.contains(this)) {
+      this.scene.ballsGroup.remove(this, true, true);
+    }
+    // Emit BALL_DESTROYED event antes de destruir
+    if (this.scene && this.scene.game && this.scene.game.events) {
+      this.scene.game.events.emit(EVENTS.enemy.BALL_DESTROYED, this);
+    }
     this.playDestructionEffect();
-    
-    // Drop items if dropper exists
-    if (this.scene.dropper) {
-      this.scene.dropper.dropFrom(this, this.x, this.y);
-    }
-    
     this.destroy();
   }
 
@@ -185,7 +172,7 @@ export class BaseSpecialBall extends Phaser.Physics.Arcade.Sprite {
     if (this.scene && this.scene.game && this.scene.game.events) {
       this.scene.game.events.emit(EVENTS.game.SCORE_CHANGE, bonusScore);
     }
-    
+      // console.log('⏰ CLOCK EFFECT: Time Stop activated!');
     // Trigger time stop on scene
     if (this.scene && typeof this.scene.activateTimeStop === 'function') {
       this.scene.activateTimeStop(duration);
@@ -208,7 +195,7 @@ export class BaseSpecialBall extends Phaser.Physics.Arcade.Sprite {
     if (this.scene && this.scene.game && this.scene.game.events) {
       this.scene.game.events.emit(EVENTS.game.SCORE_CHANGE, bonusScore);
     }
-    
+      // console.log('⭐ STAR EFFECT: Burst Clear activated!');
     // Trigger burst clear on scene
     if (this.scene && typeof this.scene.activateBurstClear === 'function') {
       this.scene.activateBurstClear(this); // Pass self to exclude from clear
