@@ -26,7 +26,7 @@ export class BaseBall extends Phaser.Physics.Arcade.Sprite {
     );
 
     // Escalar después para que el sprite llene el collider
-    this.setScale(2, 2);
+    this.setScale(2.0, 2.0);
 
     // Aplicar color
     this.setTint(this.ballColor);
@@ -34,7 +34,7 @@ export class BaseBall extends Phaser.Physics.Arcade.Sprite {
     // Física - rebote perfecto
     this.body.setBounce(1, 1); // (bounceX, bounceY) - ambos al 100%
     this.body.setCollideWorldBounds(true);
-    this.body.setGravityY(300);
+    this.body.setGravityY(200);
     
     // Asegurar que la bola pueda moverse
     this.body.immovable = false;
@@ -42,7 +42,7 @@ export class BaseBall extends Phaser.Physics.Arcade.Sprite {
     
     // Eliminar drag y fricción para que no pierda energía
     this.body.setDrag(0, 0);
-    this.body.setMaxVelocity(10000, 10000); // Limitar para evitar atravesar tiles
+    this.body.setMaxVelocity(400, 400); // Limitar para evitar atravesar tiles
     this.body.allowGravity = true;
     
     // Habilitar collision faces en todos los lados
@@ -182,6 +182,9 @@ export class BaseBall extends Phaser.Physics.Arcade.Sprite {
         }
       }
 
+      // Verificar si hay time freeze activo (heredar del padre)
+      const parentWasFrozen = this._isFrozen;
+
       // Darles un impulso inicial: una a la izquierda, otra a la derecha
       // Y un pequeño impulso hacia arriba (suave)
       const horizontalSpeed = Math.abs(ball1.speedX);
@@ -189,6 +192,23 @@ export class BaseBall extends Phaser.Physics.Arcade.Sprite {
 
       ball1.body.setVelocity(-horizontalSpeed, upwardImpulse);
       ball2.body.setVelocity(horizontalSpeed, upwardImpulse);
+      
+      // Si el padre estaba congelado, congelar las bolas nuevas también
+      if (parentWasFrozen) {
+        [ball1, ball2].forEach(ball => {
+          ball._frozenVelocity = {
+            x: ball.body.velocity.x,
+            y: ball.body.velocity.y
+          };
+          ball._frozenGravity = ball.body.gravity.y;
+          
+          ball.body.setVelocity(0, 0);
+          ball.body.setGravityY(0);
+          ball.body.setAllowGravity(false);
+          ball.setTint(0x00FFFF);
+          ball._isFrozen = true;
+        });
+      }
     };
 
     createBalls();

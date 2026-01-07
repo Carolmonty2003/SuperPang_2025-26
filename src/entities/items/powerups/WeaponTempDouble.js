@@ -21,18 +21,8 @@ export class WeaponTempDouble extends BaseItem {
     // Set to double harpoon frame (frame 0)
     this.setFrame(0);
     
-    // Green visual effect
+    // Green visual effect (sin animaciones que sobrescriben BaseItem)
     this.setTint(0x00FF88);
-    
-    // Pulsing animation
-    this.scene.tweens.add({
-      targets: this,
-      scale: { from: 1.0, to: 1.2 },
-      duration: 500,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
-    });
   }
 
   /**
@@ -81,9 +71,10 @@ export class WeaponTempDouble extends BaseItem {
     // Notify HUD
     this.scene.game.events.emit('UI_WEAPON_CHANGE', 'DOUBLE HARPOON');
     
-    // Set timer to revert weapon
-    hero._tempWeaponTimer = this.scene.time.delayedCall(ITEMS.DURATION.WEAPON_TEMP, () => {
-      this.revertWeapon(hero);
+    // Set timer to revert weapon - store scene reference
+    const scene = this.scene;
+    hero._tempWeaponTimer = scene.time.delayedCall(ITEMS.DURATION.WEAPON_TEMP, () => {
+      this.revertWeapon(hero, scene);
     });
     
     console.log('Temporary double harpoon activated for', ITEMS.DURATION.WEAPON_TEMP / 1000, 'seconds');
@@ -92,8 +83,9 @@ export class WeaponTempDouble extends BaseItem {
   /**
    * Revert to original weapon
    * @param {Hero} hero - The hero
+   * @param {Phaser.Scene} scene - The game scene
    */
-  revertWeapon(hero) {
+  revertWeapon(hero, scene) {
     if (hero._originalWeapon !== undefined) {
       hero.weaponType = hero._originalWeapon;
       delete hero._originalWeapon;
@@ -111,7 +103,7 @@ export class WeaponTempDouble extends BaseItem {
     delete hero._tempWeaponTimer;
     
     // Notify HUD
-    this.scene.game.events.emit('UI_WEAPON_CHANGE', 'HARPOON');
+    scene.game.events.emit('UI_WEAPON_CHANGE', 'HARPOON');
     
     console.log('Temporary weapon expired, reverted to normal');
   }

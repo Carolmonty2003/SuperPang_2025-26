@@ -11,15 +11,17 @@ export class Bullet extends Phaser.Physics.Arcade.Sprite {
 
         // ===== TAMAÑO =====
         
-        this.setScale(0.05);               // tamaño visual
+        this.setScale(3);               // tamaño visual
 
       
         if (this.body && this.body.setSize) {
             this.body.setAllowGravity(false);
-            this.body.setSize(
-                this.width,       
-                this.height,      
-                true                       
+            // Hitbox más pequeño que el sprite visual
+            const hitboxSize = Math.min(this.width, this.height) * 0.3; // 30% del tamaño
+            this.body.setSize(hitboxSize, hitboxSize);
+            this.body.setOffset(
+                (this.width - hitboxSize) / 2,
+                (this.height - hitboxSize) / 2
             );
         }
 
@@ -27,6 +29,7 @@ export class Bullet extends Phaser.Physics.Arcade.Sprite {
         this.lifespan = 10000;               
         this.birthTime = scene.time.now;
 
+        // console.log('Bullet created at', x, y);
     
         this.setRotation(0);
     }
@@ -50,7 +53,14 @@ export class Bullet extends Phaser.Physics.Arcade.Sprite {
 
      
         if (time > this.birthTime + this.lifespan) {
+            // console.log('Bullet destroyed by LIFESPAN at', this.x, this.y);
             this.destroy();
         }
+    }
+
+    destroy() {
+        // console.log('Bullet.destroy() called at position:', this.x, this.y);
+        // console.trace(); // Stack trace para ver desde dónde se llama
+        super.destroy();
     }
 }

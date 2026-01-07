@@ -14,7 +14,7 @@ import { PauseMenu } from './scenes/PauseMenu.js';
 
 //importamos las escenas
 import  {Level1} from './scenes/Level1.js';
-import Level_01 from "./scenes/Level_01.js";
+import {PanicLevel} from "./scenes/PanicLevel.js";
 
 //import { level2 } from "./scenes/level2.js";
 //import { Hud } from "./scenes/hud.js";
@@ -28,7 +28,7 @@ const game = new Phaser.Game(buildConfig({
         OptionsMenu,
         PauseMenu,
         Level1,
-        Level_01,
+        PanicLevel,
         /*, level2, Hud*/
     ]
 }));

@@ -21,28 +21,7 @@ export class PowerUpBomb extends BaseItem {
     // Set to bomb frame (frame 4 or 5)
     this.setFrame(4);
     
-    // Explosive visual effect - pulsing red/orange
-    this.scene.tweens.add({
-      targets: this,
-      scale: { from: 1.0, to: 1.3 },
-      alpha: { from: 1.0, to: 0.7 },
-      duration: 400,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
-    });
-    
-    // Slight rotation
-    this.scene.tweens.add({
-      targets: this,
-      angle: { from: -10, to: 10 },
-      duration: 600,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
-    });
-    
-    // Red tint
+    // Red tint (sin animaciones que sobrescriben BaseItem)
     this.setTint(0xFF4444);
   }
 
@@ -143,32 +122,48 @@ export class PowerUpBomb extends BaseItem {
    * @param {Phaser.Scene} scene - The game scene
    */
   damageAllBalls(scene) {
-    // Get the balls group from the scene
-    if (!scene.ballsGroup) {
-      console.warn('No ballsGroup found in scene for bomb effect');
-      return;
+    let totalTargets = 0;
+    
+    // Damage balls
+    if (scene.ballsGroup) {
+      const balls = scene.ballsGroup.getChildren();
+      totalTargets += balls.length;
+      
+      console.log(`Bomb damaging ${balls.length} balls`);
+      
+      balls.forEach(ball => {
+        if (ball && ball.active && typeof ball.takeDamage === 'function') {
+          const delay = Phaser.Math.Between(0, 200);
+          scene.time.delayedCall(delay, () => {
+            if (ball && ball.active) {
+              ball.takeDamage();
+            }
+          });
+        }
+      });
     }
     
-    const balls = scene.ballsGroup.getChildren();
-    
-    if (balls.length === 0) {
-      console.log('No balls to damage with bomb');
-      return;
+    // Damage birds (enemies)
+    if (scene.birdsGroup) {
+      const birds = scene.birdsGroup.getChildren();
+      totalTargets += birds.length;
+      
+      console.log(`Bomb damaging ${birds.length} birds`);
+      
+      birds.forEach(bird => {
+        if (bird && bird.active && typeof bird.takeDamage === 'function') {
+          const delay = Phaser.Math.Between(0, 200);
+          scene.time.delayedCall(delay, () => {
+            if (bird && bird.active) {
+              bird.takeDamage();
+            }
+          });
+        }
+      });
     }
     
-    console.log(`Bomb damaging ${balls.length} balls`);
-    
-    // Damage each ball (this will trigger split behavior)
-    balls.forEach(ball => {
-      if (ball && ball.active && typeof ball.takeDamage === 'function') {
-        // Small delay for cascading effect
-        const delay = Phaser.Math.Between(0, 200);
-        scene.time.delayedCall(delay, () => {
-          if (ball && ball.active) {
-            ball.takeDamage();
-          }
-        });
-      }
-    });
+    if (totalTargets === 0) {
+      console.log('No targets to damage with bomb');
+    }
   }
 }

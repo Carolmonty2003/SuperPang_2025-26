@@ -16,7 +16,7 @@ export const HERO_WEAPON = {
 
 export class Hero extends HeroBase 
 {
-    constructor(scene, x, y, texture = 'player_walk') 
+    constructor(scene, x, y, texture = 'player') 
     {
         super(scene, x, y, texture);
 
@@ -89,7 +89,7 @@ export class Hero extends HeroBase
         if (!anims.exists('idle')) {
             anims.create({
                 key: 'idle',
-                frames: [{ key: 'player_walk', frame: 0 }],
+                frames: [{ key: 'player', frame: 3 }],
                 frameRate: 1,
                 repeat: -1,
             });
@@ -98,7 +98,7 @@ export class Hero extends HeroBase
         if (!anims.exists('run')) {
             anims.create({
                 key: 'run',
-                frames: anims.generateFrameNumbers('player_walk', { start: 0, end: 2 }),
+                frames: anims.generateFrameNumbers('player', { start: 0, end: 3 }),
                 frameRate: 12,
                 repeat: -1,
             });
@@ -107,8 +107,36 @@ export class Hero extends HeroBase
         if (!anims.exists('shoot')) {
             anims.create({
                 key: 'shoot',
-                frames: anims.generateFrameNumbers('player_shoot', { start: 0, end: 1 }),
+                frames: anims.generateFrameNumbers('player', { start: 4, end: 5 }),
                 frameRate: 8,
+                repeat: 0,
+            });
+        }
+
+        // Climbing animations
+        if (!anims.exists('climb_start')) {
+            anims.create({
+                key: 'climb_start',
+                frames: [{ key: 'player', frame: 9 }],
+                frameRate: 1,
+                repeat: 0,
+            });
+        }
+
+        if (!anims.exists('climb_loop')) {
+            anims.create({
+                key: 'climb_loop',
+                frames: anims.generateFrameNumbers('player', { start: 10, end: 11 }),
+                frameRate: 8,
+                repeat: -1,
+            });
+        }
+
+        if (!anims.exists('climb_end')) {
+            anims.create({
+                key: 'climb_end',
+                frames: [{ key: 'player', frame: 12 }],
+                frameRate: 1,
                 repeat: 0,
             });
         }
@@ -168,9 +196,10 @@ export class Hero extends HeroBase
 
     shootGunFan() {
         const angles = [-80, -85, -90, -95, -100];
+        const offsets = [-10, -5, 0, 5, 10]; // Offset horizontal para evitar superposición
 
-        angles.forEach(angle => {
-            const bullet = new Bullet(this.scene, this.x, this.y - 40, 'bullet');
+        angles.forEach((angle, index) => {
+            const bullet = new Bullet(this.scene, this.x + offsets[index], this.y - 40, 'bullet');
 
             if (this.scene.bullets) {
                 this.scene.bullets.add(bullet);
@@ -530,4 +559,6 @@ export class Hero extends HeroBase
         
         console.log('Power-ups reset');
     }
+
 }
+

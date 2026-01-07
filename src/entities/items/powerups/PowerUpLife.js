@@ -18,17 +18,7 @@ export class PowerUpLife extends BaseItem {
     // Set to life frame (frame 8)
     this.setFrame(8);
     
-    // Add pulsing glow effect for heart
-    this.scene.tweens.add({
-      targets: this,
-      scale: { from: 1.0, to: 1.2 },
-      duration: 600,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
-    });
-    
-    // Optional: Add red tint pulse
+    // Add pulsing alpha effect for heart (sin modificar scale)
     this.scene.tweens.add({
       targets: this,
       alpha: { from: 1.0, to: 0.7 },

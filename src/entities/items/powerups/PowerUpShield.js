@@ -33,16 +33,7 @@ export class PowerUpShield extends BaseItem {
     // Set to shield frame (frame 3)
     this.setFrame(3);
     
-    // Add shield visual effect (spinning shield icon)
-    this.scene.tweens.add({
-      targets: this,
-      angle: 360,
-      duration: 1500,
-      repeat: -1,
-      ease: 'Linear'
-    });
-    
-    // Add cyan glow
+    // Add cyan glow (sin rotación que interfiere con BaseItem)
     this.setTint(SHIELD_CONFIG.TINT_COLOR);
   }
 

@@ -54,26 +54,6 @@ export class Fruits extends BaseItem {
     // TODO: Set proper frame when fruit sprites are added
     // For now, using a placeholder from bonus spritesheet
     // this.setFrame(fruitFrameIndex);
-    
-    // Add rotation effect for visual appeal
-    this.scene.tweens.add({
-      targets: this,
-      angle: 360,
-      duration: 2000,
-      repeat: -1,
-      ease: 'Linear'
-    });
-    
-    // Add subtle bounce effect
-    this.scene.tweens.add({
-      targets: this,
-      scaleX: { from: 1.0, to: 1.1 },
-      scaleY: { from: 1.0, to: 1.1 },
-      duration: 800,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
-    });
   }
 
   /**
