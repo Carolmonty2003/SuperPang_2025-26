@@ -103,6 +103,7 @@ export class PanicLevel extends Phaser.Scene {
     this.load.setPath('assets/audio');
     this.load.audio('bandaSonora', 'bandaSonora.mp3');
     this.load.audio('disparo', 'disparo.mp3');
+    this.load.audio('burbuja_pop', 'burbuja_pop.mp3');
   }
 
   create() {
@@ -161,6 +162,10 @@ export class PanicLevel extends Phaser.Scene {
       this.scene.bringToTop('PauseMenu');
     });
     // --- INICIAR GENERACIÓN PROGRESIVA ---
+    // Spawn balls more frequently, including at the beginning
+    for (let i = 0; i < 3; i++) {
+      this.spawnBall();
+    }
     this.time.addEvent({ delay: 2000, loop: true, callback: () => this.progressiveBallSpawn() });
     // --- SCORE GLOBAL ---
     this.globalScore = 0;
@@ -196,7 +201,8 @@ export class PanicLevel extends Phaser.Scene {
     const size = sizes[Math.floor(Math.random() * sizes.length)];
     let ball;
     const x = Phaser.Math.Between(100, GAME_SIZE.WIDTH - 100);
-    const y = Phaser.Math.Between(100, GAME_SIZE.HEIGHT - 200);
+    // Spawn balls high on the map (low y value)
+    const y = Phaser.Math.Between(60, 120); // Always near the top
     if (type === 'normal') {
       if (size === 'big') ball = new BigBall(this, x, y, 1, BALL_COLORS.RED);
       else ball = new MidBall(this, x, y, 1, BALL_COLORS.BLUE);
@@ -204,7 +210,30 @@ export class PanicLevel extends Phaser.Scene {
       if (size === 'big') ball = new HexBigBall(this, x, y, 1, 1, BALL_COLORS.GREEN);
       else ball = new HexMidBall(this, x, y, 1, 1, BALL_COLORS.YELLOW);
     }
-    this.ballsGroup.add(ball);
+    if (ball) {
+      this.ballsGroup.add(ball);
+      console.log('[PANIC] Ball spawned and added to group:', ball, 'Current group:', this.ballsGroup.getChildren());
+      // Patch takeDamage to pop from group and log
+      ball._originalTakeDamage = ball.takeDamage;
+      ball.takeDamage = async (...args) => {
+        if (this.ballsGroup.contains(ball)) {
+          this.ballsGroup.remove(ball, true, true);
+          console.log('[PANIC] Ball destroyed and removed from group:', ball, 'Current group:', this.ballsGroup.getChildren());
+          // Call visual effect and score before destroying
+          if (typeof ball.showFloatingScore === 'function') ball.showFloatingScore();
+          if (typeof ball.playDestructionEffect === 'function') ball.playDestructionEffect();
+          // Await split if needed
+          if (typeof ball._originalTakeDamage === 'function') {
+            await ball._originalTakeDamage.apply(ball, args);
+          }
+          ball.destroy();
+        } else {
+          if (typeof ball._originalTakeDamage === 'function') {
+            await ball._originalTakeDamage.apply(ball, args);
+          }
+        }
+      };
+    }
     // Drop aleatorio de powerup
     if (Math.random() < 0.3) { // 30% probabilidad
       this.time.delayedCall(500, () => {
@@ -226,7 +255,8 @@ export class PanicLevel extends Phaser.Scene {
 
   createBall(x = null, y = null, ballType = null) {
     const startX = x !== null ? x : this.wallManager.getFloorLayer().width / 2;
-    const startY = y !== null ? y : 200;
+    // Always spawn high on the map in PanicMode
+    const startY = y !== null ? y : 80;
 
     let ball;
     const type = ballType || (this.gameMode === 'panic' ? 'special' : 'hexagonal');
@@ -402,7 +432,21 @@ export class PanicLevel extends Phaser.Scene {
     let ball;
     if (type === 'specialBig') ball = new SpecialBigBall(this, x, y, 1);
     else ball = new SpecialMidBall(this, x, y, 1);
-    this.ballsGroup.add(ball);
+    if (ball) {
+      this.ballsGroup.add(ball);
+      console.log('[PANIC] Special ball spawned and added to group:', ball, 'Current group:', this.ballsGroup.getChildren());
+      // Patch takeDamage to pop from group and log
+      ball._originalTakeDamage = ball.takeDamage;
+      ball.takeDamage = (...args) => {
+        if (this.ballsGroup.contains(ball)) {
+          this.ballsGroup.remove(ball, true, true);
+          console.log('[PANIC] Special ball destroyed and removed from group:', ball, 'Current group:', this.ballsGroup.getChildren());
+        }
+        if (typeof ball._originalTakeDamage === 'function') {
+          ball._originalTakeDamage.apply(ball, args);
+        }
+      };
+    }
   }
 
   onFixedHarpoonHitBall(fixedHarpoon, ball) {

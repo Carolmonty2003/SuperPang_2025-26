@@ -25,7 +25,7 @@ window.buildConfig = function({ scenes = [] } = {})
             default: PHYSICS.TYPE,
             arcade: {
                 gravity: { y: PHYSICS.GRAVITY },
-                debug: PHYSICS.DEBUG
+               // debug: PHYSICS.DEBUG
             }
         },
         fps:
