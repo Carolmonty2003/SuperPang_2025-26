@@ -163,7 +163,7 @@
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 12, 12, 12, 12, 12, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 4, 5, 5, 5, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 5, 5, 5, 6, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -223,7 +223,7 @@
                         {
                          "name":"type",
                          "type":"string",
-                         "value":"n_tinty"
+                         "value":"n_tiny"
                         }, 
                         {
                          "name":"velocity",
@@ -234,8 +234,8 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":262.139842280119,
-                 "y":528.967567756601
+                 "x":262.14,
+                 "y":528.968
                 }, 
                 {
                  "height":0,
@@ -251,7 +251,7 @@
                         {
                          "name":"type",
                          "type":"string",
-                         "value":"n_tinty"
+                         "value":"n_tiny"
                         }, 
                         {
                          "name":"velocity",
@@ -262,8 +262,8 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":296.159468438538,
-                 "y":528.96730197587
+                 "x":296.159,
+                 "y":528.967
                 }, 
                 {
                  "height":0,
@@ -279,7 +279,7 @@
                         {
                          "name":"type",
                          "type":"string",
-                         "value":"n_tinty"
+                         "value":"n_tiny"
                         }, 
                         {
                          "name":"velocity",
@@ -290,8 +290,8 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":326.647666666667,
-                 "y":529.334333333333
+                 "x":326.648,
+                 "y":529.334
                 }, 
                 {
                  "height":0,
@@ -307,7 +307,7 @@
                         {
                          "name":"type",
                          "type":"string",
-                         "value":"n_tinty"
+                         "value":"n_tiny"
                         }, 
                         {
                          "name":"velocity",
@@ -318,8 +318,8 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":360.666666666667,
-                 "y":529.333333333333
+                 "x":360.667,
+                 "y":529.333
                 }, 
                 {
                  "height":0,
@@ -335,7 +335,7 @@
                         {
                          "name":"type",
                          "type":"string",
-                         "value":"n_tinty"
+                         "value":"n_tiny"
                         }, 
                         {
                          "name":"velocity",
@@ -346,8 +346,8 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":390.806333333333,
-                 "y":528.968333333333
+                 "x":390.806,
+                 "y":528.968
                 }, 
                 {
                  "height":0,
@@ -363,7 +363,7 @@
                         {
                          "name":"type",
                          "type":"string",
-                         "value":"n_tinty"
+                         "value":"n_tiny"
                         }, 
                         {
                          "name":"velocity",
@@ -374,8 +374,8 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":424.825333333333,
-                 "y":528.967333333333
+                 "x":424.825,
+                 "y":528.967
                 }, 
                 {
                  "height":0,
@@ -391,7 +391,7 @@
                         {
                          "name":"type",
                          "type":"string",
-                         "value":"n_tinty"
+                         "value":"n_tiny"
                         }, 
                         {
                          "name":"velocity",
@@ -402,8 +402,8 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":455.314333333333,
-                 "y":529.334333333333
+                 "x":455.314,
+                 "y":529.334
                 }, 
                 {
                  "height":0,
@@ -419,7 +419,7 @@
                         {
                          "name":"type",
                          "type":"string",
-                         "value":"n_tinty"
+                         "value":"n_tiny"
                         }, 
                         {
                          "name":"velocity",
@@ -430,8 +430,8 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":489.333333333333,
-                 "y":529.333333333333
+                 "x":489.333,
+                 "y":529.333
                 }, 
                 {
                  "height":0,
@@ -447,7 +447,7 @@
                         {
                          "name":"type",
                          "type":"string",
-                         "value":"n_tinty"
+                         "value":"n_tiny"
                         }, 
                         {
                          "name":"velocity",
@@ -458,7 +458,7 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":1008.807,
+                 "x":1008.81,
                  "y":531.635
                 }, 
                 {
@@ -475,7 +475,7 @@
                         {
                          "name":"type",
                          "type":"string",
-                         "value":"n_tinty"
+                         "value":"n_tiny"
                         }, 
                         {
                          "name":"velocity",
@@ -486,7 +486,7 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":1042.826,
+                 "x":1042.83,
                  "y":531.634
                 }, 
                 {
@@ -503,7 +503,7 @@
                         {
                          "name":"type",
                          "type":"string",
-                         "value":"n_tinty"
+                         "value":"n_tiny"
                         }, 
                         {
                          "name":"velocity",
@@ -514,7 +514,7 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":1073.315,
+                 "x":1073.31,
                  "y":532.001
                 }, 
                 {
@@ -531,7 +531,7 @@
                         {
                          "name":"type",
                          "type":"string",
-                         "value":"n_tinty"
+                         "value":"n_tiny"
                         }, 
                         {
                          "name":"velocity",
@@ -542,7 +542,7 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":1107.334,
+                 "x":1107.33,
                  "y":532
                 }, 
                 {
@@ -559,7 +559,7 @@
                         {
                          "name":"type",
                          "type":"string",
-                         "value":"n_tinty"
+                         "value":"n_tiny"
                         }, 
                         {
                          "name":"velocity",
@@ -570,7 +570,7 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":1137.473,
+                 "x":1137.47,
                  "y":531.635
                 }, 
                 {
@@ -587,7 +587,7 @@
                         {
                          "name":"type",
                          "type":"string",
-                         "value":"n_tinty"
+                         "value":"n_tiny"
                         }, 
                         {
                          "name":"velocity",
@@ -598,7 +598,7 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":1171.492,
+                 "x":1171.49,
                  "y":531.634
                 }, 
                 {
@@ -615,7 +615,7 @@
                         {
                          "name":"type",
                          "type":"string",
-                         "value":"n_tinty"
+                         "value":"n_tiny"
                         }, 
                         {
                          "name":"velocity",
@@ -626,7 +626,7 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":1201.981,
+                 "x":1201.98,
                  "y":532.001
                 }, 
                 {
@@ -643,7 +643,7 @@
                         {
                          "name":"type",
                          "type":"string",
-                         "value":"n_tinty"
+                         "value":"n_tiny"
                         }, 
                         {
                          "name":"velocity",
@@ -665,6 +665,17 @@
         }, 
         {
          "draworder":"topdown",
+         "id":10,
+         "name":"enemies",
+         "objects":[],
+         "opacity":1,
+         "type":"objectgroup",
+         "visible":true,
+         "x":0,
+         "y":0
+        }, 
+        {
+         "draworder":"topdown",
          "id":8,
          "name":"drops_platforms",
          "objects":[
@@ -676,13 +687,13 @@
                         {
                          "name":"drop",
                          "type":"string",
-                         "value":"bomb"
+                         "value":"machine_gun"
                         }],
                  "rotation":0,
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":1197.66829865361,
+                 "x":1197.67,
                  "y":269
                 }, 
                 {
@@ -693,14 +704,14 @@
                         {
                          "name":"drop",
                          "type":"string",
-                         "value":"bomb"
+                         "value":"machine_gun"
                         }],
                  "rotation":0,
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":307.96992481203,
-                 "y":270.368945619864
+                 "x":307.97,
+                 "y":270.369
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -708,7 +719,7 @@
          "x":0,
          "y":0
         }],
- "nextlayerid":10,
+ "nextlayerid":11,
  "nextobjectid":34,
  "orientation":"orthogonal",
  "renderorder":"right-down",

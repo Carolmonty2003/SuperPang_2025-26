@@ -111,35 +111,32 @@ export class Level2 extends Phaser.Scene {
     if (this.game && this.game.events) {
       this.game.events.on("hero:damaged", (remainingLives) => {
         if (remainingLives <= 0) {
-          if (this.sound) this.sound.play("gameover", { volume: 1 });
+          if (this.sound) this.sound.play("gameover", { volume: 0.12 });
           setTimeout(() => this.scene.start("MainMenuScene"), 2000);
         }
       });
     }
 
-    // Ball counter and event listeners
-    this._ballCount = 0;
+    // Robust group-based ball detection and win logic
     this._levelCompleted = false;
-
     if (this.game && this.game.events) {
-      this.game.events.on("enemy:ball_created", () => {
-        this._ballCount++;
-      });
-
       this.game.events.on("enemy:ball_destroyed", async () => {
-        this._ballCount = Math.max(0, this._ballCount - 1);
-        if (this._ballCount === 0 && !this._levelCompleted) {
-          this._levelCompleted = true;
-          this.game.audioManager?.playEffect?.(this, "victoria", { volume: 1 });
-          await new Promise((res) => setTimeout(res, 2000));
-          this.game.audioManager?.stopMusic?.();
-          this.scene.start("Level3");
-        }
+        // Wait for next tick to ensure group is updated
+        this.time.delayedCall(10, async () => {
+          const balls = this.ballsGroup.getChildren().filter(b => b.active);
+          console.log(`[BALL DESTROYED] Remaining balls:`, balls, 'Count:', balls.length);
+          if (balls.length === 0 && !this._levelCompleted) {
+            this._levelCompleted = true;
+            this.game.audioManager?.playEffect?.(this, "victoria", { volume: 1 });
+            await new Promise((res) => setTimeout(res, 2000));
+            this.game.audioManager?.stopMusic?.();
+            this.scene.start("Level3");
+          }
+        });
       });
-
       this.game.events.on("hero:damaged", (remainingLives) => {
         if (remainingLives <= 0) {
-          this.game.audioManager?.playEffect?.(this, "gameover", { volume: 1 });
+          this.game.audioManager?.playEffect?.(this, "gameover", { volume: 0.12 });
           this.game.audioManager?.stopMusic?.();
           setTimeout(() => this.scene.start("MainMenuScene"), 2000);
         }
@@ -186,18 +183,35 @@ export class Level2 extends Phaser.Scene {
       this.platformsBreakable.setCollisionByExclusion([-1, 0]);
     }
 
-    // PlatformManager (usa tiles breakable tal cual, NO las borres aquí)
+    
+    // Initialize Platform Manager with breakable layer
     this.platformManager = new PlatformManager(this, map, this.platformsBreakable);
 
-    // Guardar posiciones de tiles rompibles en platformObjects (key consistente)
-    // Esto es SOLO para poder mapear tile->platform y romperlo luego
+    // Convertir tiles rompibles en plataformas del sistema PlatformBase
+    const breakableTilePositions = [];
     if (this.platformsBreakable) {
       this.platformsBreakable.forEachTile((tile) => {
         if (tile && tile.index > 0) {
-          // guardamos un “registro” de que existe
-          this.platformObjects.set(`${tile.x}_${tile.y}`, { tileX: tile.x, tileY: tile.y, index: tile.index });
-          // Si tu PlatformManager ya crea objetos internos, perfecto.
+          breakableTilePositions.push({ x: tile.x, y: tile.y, index: tile.index });
         }
+      });
+
+      // Limpiar tiles visuales (dejamos los Tile objects para poder guardar properties)
+      this.platformsBreakable.fill(-1);
+    }
+
+    // Crear plataformas rompibles y enlazarlas en tile.properties.platform
+    if (breakableTilePositions.length > 0) {
+      breakableTilePositions.forEach((pos) => {
+        const pattern = [pos.index];
+        const color = 0x00FFFF;
+        this.platformManager.createBreakablePlatform(
+          pos.x,
+          pos.y,
+          pattern,
+          color,
+          null
+        );
       });
     }
 
@@ -447,34 +461,132 @@ export class Level2 extends Phaser.Scene {
   enableHeroBallOverlap() {
     if (this.heroBallOverlap) this.heroBallOverlap.active = true;
   }
-
   update() {
     // Destruir pelotas fuera de la pantalla
-    this.ballsGroup.children.entries.forEach((ball) => {
-      if (!ball || !ball.active) return;
-      if (
-        ball.y > this.cameras.main.height + 50 ||
-        ball.y < -50 ||
-        ball.x < -50 ||
-        ball.x > this.cameras.main.width + 50
-      ) {
-        ball.destroy();
+    this.ballsGroup.children.entries.forEach(ball => {
+      if (ball && ball.active) {
+        if (
+          ball.y > this.cameras.main.height + 50 || ball.y < -50 ||
+          ball.x < -50 || ball.x > this.cameras.main.width + 50
+        ) {
+          ball.destroy();
+        }
       }
     });
 
-    // Balas destruyendo pelotas
+    // Arpón (normal) contra plataformas rompibles y pelotas
+    if (this.hero.activeHarpoons && this.hero.activeHarpoons.length > 0) {
+      // limpiar arpones destruidos
+      this.hero.activeHarpoons = this.hero.activeHarpoons.filter(h => h && h.active);
+
+      this.hero.activeHarpoons.forEach(harpoon => {
+        if (!harpoon || !harpoon.active) return;
+
+        // Harpoon vs plataformas rompibles (tilemap layer)
+        if (this.platformsBreakable && this.platformManager) {
+          this.physics.overlap(
+            harpoon,
+            this.platformsBreakable,
+            (hp, tile) => {
+              if (tile && tile.properties && tile.properties.platform) {
+                this.platformManager.onWeaponHitPlatform(hp, tile);
+              }
+            },
+            null,
+            this
+          );
+        }
+
+        // Harpoon vs pelotas
+        this.physics.overlap(
+          harpoon,
+          this.ballsGroup,
+          this.onWeaponHitsBall,
+          null,
+          this
+        );
+      });
+    }
+
+    // Arpón fijo contra techo / plataformas / pelotas
+    if (this.hero.activeFixedHarpoon && this.hero.activeFixedHarpoon.active) {
+      // Techo para pegarse
+      if (this.wallManager && this.wallManager.getCeilingLayer && this.wallManager.getCeilingLayer()) {
+        this.physics.collide(
+          this.hero.activeFixedHarpoon,
+          this.wallManager.getCeilingLayer(),
+          (harpoon, tile) => {
+            if (harpoon && harpoon.onWallCollision) harpoon.onWallCollision();
+          },
+          null,
+          this
+        );
+      }
+
+      // Plataformas estáticas: se pega (no destruye)
+      if (this.platformsStatic) {
+        this.physics.collide(
+          this.hero.activeFixedHarpoon,
+          this.platformsStatic,
+          (harpoon, tile) => {
+            if (harpoon && harpoon.onWallCollision) harpoon.onWallCollision();
+          },
+          null,
+          this
+        );
+      }
+
+      // Plataformas rompibles: rompe
+      if (this.platformsBreakable && this.platformManager) {
+        this.physics.overlap(
+          this.hero.activeFixedHarpoon,
+          this.platformsBreakable,
+          (harpoon, tile) => {
+            if (tile && tile.properties && tile.properties.platform) {
+              this.platformManager.onWeaponHitPlatform(harpoon, tile);
+            }
+          },
+          null,
+          this
+        );
+      }
+
+      // Fixed harpoon vs pelotas
+      this.physics.overlap(
+        this.hero.activeFixedHarpoon,
+        this.ballsGroup,
+        this.onFixedHarpoonHitsBall,
+        null,
+        this
+      );
+    }
+
+    // Balas vs pelotas
     this.physics.overlap(this.bullets, this.ballsGroup, this.onWeaponHitsBall, null, this);
 
-    // Balas vs Crocodiles
-    this.physics.overlap(this.bullets, this.crocodilesGroup, this.onWeaponHitsCrocodile, null, this);
+    // Balas vs plataformas rompibles
+    if (this.platformsBreakable && this.platformManager) {
+      this.physics.overlap(
+        this.bullets,
+        this.platformsBreakable,
+        (bullet, tile) => {
+          if (tile && tile.properties && tile.properties.platform) {
+            this.platformManager.onWeaponHitPlatform(bullet, tile);
+          }
+        },
+        null,
+        this
+      );
+    }
 
     // CHECK ITEM PICKUPS
     if (this.dropper && this.dropper.activeItems) {
-      this.dropper.activeItems.getChildren().forEach((item) => {
+      this.dropper.activeItems.getChildren().forEach(item => {
         if (item && item.active && !item.consumed) item.checkPickup(this.hero);
       });
     }
   }
+
 
   onWeaponHitsBall(weapon, ball) {
     if (weapon && weapon.active && ball && ball.active) {

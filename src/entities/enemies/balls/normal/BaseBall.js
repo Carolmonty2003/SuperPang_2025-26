@@ -106,13 +106,13 @@ this.nextBallType = nextBallType;
     if (this.scene && this.scene.sound) {
       this.scene.sound.play('burbuja_pop', { volume: 0.7 });
     }
-    // Eliminar del grupo antes de destruir
-    if (this.scene && this.scene.ballsGroup && this.scene.ballsGroup.contains(this)) {
-      this.scene.ballsGroup.remove(this, true, true);
-    }
-    // Emit BALL_DESTROYED event antes de destruir
+    // Emit BALL_DESTROYED event and remove from group BEFORE destroy
     if (this.scene && this.scene.game && this.scene.game.events) {
       this.scene.game.events.emit(EVENTS.enemy.BALL_DESTROYED, this);
+    }
+    if (this.scene && this.scene.ballsGroup && this.scene.ballsGroup.contains(this)) {
+      this.scene.ballsGroup.remove(this, true, true);
+      console.log('[BALL REMOVED] (destroy)', this, 'Current group:', this.scene.ballsGroup.getChildren());
     }
     // Destruir la bola actual
     this.destroy();
@@ -179,6 +179,7 @@ this.nextBallType = nextBallType;
       if (scene.ballsGroup) {
         scene.ballsGroup.add(ball1);
         scene.ballsGroup.add(ball2);
+        console.log('[BALL SPLIT] Added:', ball1, ball2, 'Current group:', scene.ballsGroup.getChildren());
         if (scene.game && scene.game.events) {
           scene.game.events.emit(EVENTS.enemy.BALL_CREATED, ball1);
           scene.game.events.emit(EVENTS.enemy.BALL_CREATED, ball2);

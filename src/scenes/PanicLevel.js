@@ -144,6 +144,10 @@ export class PanicLevel extends Phaser.Scene {
     this.wallManager.addHeroCollider(this.hero);
     this.wallManager.addGroupCollider(this.ballsGroup, this.bounceBall, this);
     this.heroBallOverlap = this.physics.add.overlap(this.ballsGroup, this.hero, this.onHeroHitBall, null, this);
+    // Siempre doble arpón en PanicMode
+    if (this.hero && this.hero.setWeaponMode) {
+      this.hero.setWeaponMode('DOUBLE');
+    }
     // --- HUD CON BARRA DE EXP ---
     this.hud = new Hud(this, { uiTop: map.heightInPixels, mode: 'PANIC' });
     this.hud.onExpLevelUp = (level) => {
@@ -160,6 +164,18 @@ export class PanicLevel extends Phaser.Scene {
     this.time.addEvent({ delay: 2000, loop: true, callback: () => this.progressiveBallSpawn() });
     // --- SCORE GLOBAL ---
     this.globalScore = 0;
+
+    // Listener para vidas del héroe
+    if (this.game && this.game.events) {
+      this.game.events.on('hero:damaged', (remainingLives) => {
+        if (remainingLives <= 0) {
+          if (this.sound) this.sound.play('gameover', { volume: 0.12 });
+          setTimeout(() => {
+            this.scene.start('MainMenuScene');
+          }, 2000);
+        }
+      });
+    }
   }
 
   progressiveBallSpawn() {
@@ -368,13 +384,11 @@ export class PanicLevel extends Phaser.Scene {
     if (weapon && weapon.active && ball && ball.active) {
       if (weapon.destroy) weapon.destroy();
       if (ball.takeDamage) ball.takeDamage();
-      // Sumar experiencia al HUD al destruir bola
       if (this.hud && this.hud.addExp) {
         this.hud.addExp(25);
       }
-      // Sumar score global y generar special ball cada 500
       this.globalScore += 25;
-      if (this.globalScore % 500 === 0) {
+      if (this.globalScore % 250 === 0) {
         this.spawnSpecialBall();
       }
     }

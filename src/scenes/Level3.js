@@ -127,7 +127,7 @@ export class Level3 extends Phaser.Scene {
                 if (this.game && this.game.events) {
                   this.game.events.on('hero:damaged', (remainingLives) => {
                     if (remainingLives <= 0) {
-                      if (this.sound) this.sound.play('gameover', { volume: 1 });
+                      if (this.sound) this.sound.play('gameover', { volume: 0.12 });
                       setTimeout(() => {
                         this.scene.start('MainMenuScene');
                       }, 2000);
@@ -154,7 +154,7 @@ export class Level3 extends Phaser.Scene {
           });
           this.game.events.on('hero:damaged', (remainingLives) => {
             if (remainingLives <= 0) {
-              this.game.audioManager.playEffect(this, 'gameover', { volume: 1 });
+              this.game.audioManager.playEffect(this, 'gameover', { volume: 0.12 });
               this.game.audioManager.stopMusic();
               setTimeout(() => {
                 this.scene.start('MainMenuScene');
@@ -229,18 +229,19 @@ export class Level3 extends Phaser.Scene {
       this.platformsBreakable.fill(-1);
     }
     
-    // Create platforms from stored positions
-    breakableTilePositions.forEach(pos => {
-      const pattern = [pos.index]; // Use the actual tile index
-      const color = 0x00FFFF; // Cyan glass for breakable
-      
-      this.platformManager.createBreakablePlatform(
-        pos.x, pos.y,
-        pattern,
-        color,
-        null // No drop for now
-      );
-    });
+    // Create platforms from stored positions only if any exist
+    if (breakableTilePositions.length > 0) {
+      breakableTilePositions.forEach(pos => {
+        const pattern = [pos.index]; // Use the actual tile index
+        const color = 0x00FFFF; // Cyan glass for breakable
+        this.platformManager.createBreakablePlatform(
+          pos.x, pos.y,
+          pattern,
+          color,
+          null // No drop for now
+        );
+      });
+    }
     
     // Static platforms keep collision but no special behavior needed
     // this.createPlatformObjects(); // removed: using PlatformManager PlatformBase
@@ -1001,15 +1002,19 @@ export class Level3 extends Phaser.Scene {
         this.ballsGroup.remove(ball, true, true);
         console.log(`[BALL REMOVED FROM GROUP] Remaining: ${this.ballsGroup.getChildren().length}`);
         // Check group length for level completion
-        if (this.ballsGroup.getChildren().length === 0 && !this._levelCompleted) {
-          this._levelCompleted = true;
-          console.log('Nivel 3 completado, pasando a Nivel 4');
-          this.scene.start('Level4');
-        }
+        this.checkLevelCompletion();
       }
       // Play ball pop sound
       if (this.sound) this.sound.play('burbuja_pop', { volume: 0.7 });
       if (ball.takeDamage) ball.takeDamage();
+    }
+  }
+
+  checkLevelCompletion() {
+    if (this.ballsGroup && this.ballsGroup.getChildren().length === 0 && !this._levelCompleted) {
+      this._levelCompleted = true;
+      console.log('Nivel 3 completado, pasando a Nivel 4');
+      this.scene.start('Level4');
     }
   }
 

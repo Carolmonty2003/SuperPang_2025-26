@@ -127,7 +127,7 @@ export class Level7 extends Phaser.Scene {
                 if (this.game && this.game.events) {
                   this.game.events.on('hero:damaged', (remainingLives) => {
                     if (remainingLives <= 0) {
-                      if (this.sound) this.sound.play('gameover', { volume: 1 });
+                      if (this.sound) this.sound.play('gameover', { volume: 0.12 });
                       setTimeout(() => {
                         this.scene.start('MainMenuScene');
                       }, 2000);
@@ -154,7 +154,7 @@ export class Level7 extends Phaser.Scene {
           });
           this.game.events.on('hero:damaged', (remainingLives) => {
             if (remainingLives <= 0) {
-              this.game.audioManager.playEffect(this, 'gameover', { volume: 1 });
+              this.game.audioManager.playEffect(this, 'gameover', { volume: 0.12 });
               this.game.audioManager.stopMusic();
               setTimeout(() => {
                 this.scene.start('MainMenuScene');

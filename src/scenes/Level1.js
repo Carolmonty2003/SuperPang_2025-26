@@ -127,34 +127,33 @@ export class Level1 extends Phaser.Scene {
                 if (this.game && this.game.events) {
                   this.game.events.on('hero:damaged', (remainingLives) => {
                     if (remainingLives <= 0) {
-                      if (this.sound) this.sound.play('gameover', { volume: 1 });
+                      if (this.sound) this.sound.play('gameover', { volume: 0.12 });
                       setTimeout(() => {
                         this.scene.start('MainMenuScene');
                       }, 2000);
                     }
                   });
                 }
-        // Ball counter and event listeners
-        this._ballCount = 0;
+        // Ball event listeners and robust win detection
         this._levelCompleted = false;
         if (this.game && this.game.events) {
-          this.game.events.on('enemy:ball_created', (ball) => {
-            this._ballCount++;
-            console.log(`[BALL CREATED] Count: ${this._ballCount}`, ball);
-          });
           this.game.events.on('enemy:ball_destroyed', async (ball) => {
-            this._ballCount = Math.max(0, this._ballCount - 1);
-            if (this._ballCount === 0 && !this._levelCompleted) {
-              this._levelCompleted = true;
-              this.game.audioManager.playEffect(this, 'victoria', { volume: 1 });
-              await new Promise(res => setTimeout(res, 2000));
-              this.game.audioManager.stopMusic();
-              this.scene.start('Level2');
-            }
+            // Wait for next tick to ensure group is updated
+            this.time.delayedCall(10, async () => {
+              const balls = this.ballsGroup.getChildren().filter(b => b.active);
+              console.log(`[BALL DESTROYED] Remaining balls:`, balls, 'Count:', balls.length);
+              if (balls.length === 0 && !this._levelCompleted) {
+                this._levelCompleted = true;
+                this.game.audioManager.playEffect(this, 'victoria', { volume: 1 });
+                await new Promise(res => setTimeout(res, 2000));
+                this.game.audioManager.stopMusic();
+                this.scene.start('Level2');
+              }
+            });
           });
           this.game.events.on('hero:damaged', (remainingLives) => {
             if (remainingLives <= 0) {
-              this.game.audioManager.playEffect(this, 'gameover', { volume: 1 });
+              this.game.audioManager.playEffect(this, 'gameover', { volume: 0.12 });
               this.game.audioManager.stopMusic();
               setTimeout(() => {
                 this.scene.start('MainMenuScene');
@@ -229,18 +228,19 @@ export class Level1 extends Phaser.Scene {
       this.platformsBreakable.fill(-1);
     }
     
-    // Create platforms from stored positions
-    breakableTilePositions.forEach(pos => {
-      const pattern = [pos.index]; // Use the actual tile index
-      const color = 0x00FFFF; // Cyan glass for breakable
-      
-      this.platformManager.createBreakablePlatform(
-        pos.x, pos.y,
-        pattern,
-        color,
-        null // No drop for now
-      );
-    });
+    // Create platforms from stored positions only if any exist
+    if (breakableTilePositions.length > 0) {
+      breakableTilePositions.forEach(pos => {
+        const pattern = [pos.index]; // Use the actual tile index
+        const color = 0x00FFFF; // Cyan glass for breakable
+        this.platformManager.createBreakablePlatform(
+          pos.x, pos.y,
+          pattern,
+          color,
+          null // No drop for now
+        );
+      });
+    }
     
     // Static platforms keep collision but no special behavior needed
     // this.createPlatformObjects(); // removed: using PlatformManager PlatformBase
@@ -992,26 +992,16 @@ export class Level1 extends Phaser.Scene {
       
     if (weapon && weapon.active && weapon.destroy) weapon.destroy();
   }
-
   onWeaponHitsBall(weapon, ball) {
     if (weapon && weapon.active && ball && ball.active) {
       if (weapon.destroy) weapon.destroy();
-      // Remove ball from group before destroying
-      if (this.ballsGroup && this.ballsGroup.contains(ball)) {
-        this.ballsGroup.remove(ball, true, true);
-        console.log(`[BALL REMOVED FROM GROUP] Remaining: ${this.ballsGroup.getChildren().length}`);
-        // Check group length for level completion
-        if (this.ballsGroup.getChildren().length === 0 && !this._levelCompleted) {
-          this._levelCompleted = true;
-          console.log('Nivel 1 completado, pasando a Nivel 2');
-          this.scene.start('Level2');
-        }
-      }
-      // Play ball pop sound
+      // Sonido de pop
       if (this.sound) this.sound.play('burbuja_pop', { volume: 0.7 });
+      // IMPORTANTE: primero damage (emite score + floating text + split), y la bola se destruye desde dentro
       if (ball.takeDamage) ball.takeDamage();
     }
   }
+
 
   onFixedHarpoonHitsBall(fixedHarpoon, ball) {
     if (fixedHarpoon && fixedHarpoon.active && ball && ball.active) {

@@ -17,10 +17,8 @@ export class PowerUpBomb extends BaseItem {
       gravity: 450,
       bounce: 0.6
     });
-    
     // Set to bomb frame (frame 4 or 5)
     this.setFrame(4);
-    
     // Red tint (sin animaciones que sobrescriben BaseItem)
     this.setTint(0xFF4444);
   }
@@ -31,7 +29,6 @@ export class PowerUpBomb extends BaseItem {
    */
   onPickup(hero) {
     const scene = this.scene;
-    
     // Show bomb activation text
     const bombText = scene.add.text(
       this.x,
@@ -45,9 +42,7 @@ export class PowerUpBomb extends BaseItem {
         strokeThickness: 6
       }
     ).setOrigin(0.5);
-    
     bombText.setDepth(100);
-    
     scene.tweens.add({
       targets: bombText,
       y: bombText.y - 80,
@@ -57,16 +52,12 @@ export class PowerUpBomb extends BaseItem {
       ease: 'Cubic.easeOut',
       onComplete: () => bombText.destroy()
     });
-    
     // Visual explosion effect at bomb position
     this.createExplosionEffect();
-    
     // Damage all balls on screen
     this.damageAllBalls(scene);
-    
     // Optional: Camera shake
     scene.cameras.main.shake(300, 0.005);
-    
     // Optional: play sound
     // scene.sound.play('bomb_explosion', { volume: 0.7 });
   }
@@ -123,33 +114,47 @@ export class PowerUpBomb extends BaseItem {
    */
   damageAllBalls(scene) {
     let totalTargets = 0;
-    
     // Damage balls
     if (scene.ballsGroup) {
       const balls = scene.ballsGroup.getChildren();
       totalTargets += balls.length;
-      
       console.log(`Bomb damaging ${balls.length} balls`);
-      
       balls.forEach(ball => {
         if (ball && ball.active && typeof ball.takeDamage === 'function') {
           const delay = Phaser.Math.Between(0, 200);
           scene.time.delayedCall(delay, () => {
             if (ball && ball.active) {
+              // Ensure robust removal from group before destruction
+              if (scene.ballsGroup && scene.ballsGroup.contains(ball)) {
+                scene.ballsGroup.remove(ball, true, true);
+                console.log('[BOMB] Ball removed from group before destruction:', ball);
+              }
               ball.takeDamage();
             }
           });
         }
       });
+      // After all bomb effects, check for level completion after 1 second
+      scene.time.delayedCall(1000, () => {
+        // Prefer calling a public checkLevelCompletion method if it exists
+        if (typeof scene.checkLevelCompletion === 'function') {
+          scene.checkLevelCompletion();
+        } else if (scene && scene.ballsGroup && scene.ballsGroup.getChildren().length === 0) {
+          // Fallback: legacy logic
+          if (typeof scene._levelCompleted !== 'undefined' && !scene._levelCompleted) {
+            scene._levelCompleted = true;
+            if (typeof scene.nextLevelKey === 'string') {
+              scene.scene.start(scene.nextLevelKey);
+            }
+          }
+        }
+      });
     }
-    
     // Damage birds (enemies)
     if (scene.birdsGroup) {
       const birds = scene.birdsGroup.getChildren();
       totalTargets += birds.length;
-      
       console.log(`Bomb damaging ${birds.length} birds`);
-      
       birds.forEach(bird => {
         if (bird && bird.active && typeof bird.takeDamage === 'function') {
           const delay = Phaser.Math.Between(0, 200);
@@ -161,9 +166,9 @@ export class PowerUpBomb extends BaseItem {
         }
       });
     }
-    
     if (totalTargets === 0) {
       console.log('No targets to damage with bomb');
     }
+
   }
 }

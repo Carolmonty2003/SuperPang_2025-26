@@ -60,21 +60,7 @@ export class Hud {
       .setOrigin(0, 1)
       .setVisible(false);
 
-    // ==========================
-    //   TEXTO DE MODO
-    // ==========================
-    this.modeText = scene.add
-      .text(
-        GAME_SIZE.WIDTH / 2,
-        this.uiTop + this.uiHeight / 2,
-        `MODE: ${mode}`,
-        {
-          fontFamily: 'Arial',
-          fontSize: '24px',
-          color: '#ffffff',
-        }
-      )
-      .setOrigin(0.5, 0.5);
+
 
     // ==========================
     //   TEXTO DE PUNTUACIÓN
@@ -98,12 +84,12 @@ export class Hud {
     // ==========================
     if (mode === 'PANIC') {
       this.expBarBg = scene.add.rectangle(GAME_SIZE.WIDTH / 2, this.uiTop + 10, 200, 20, 0x333333, 1).setOrigin(0.5, 0);
-      this.expBar = scene.add.rectangle(GAME_SIZE.WIDTH / 2, this.uiTop + 10, 0, 20, 0x00ff00, 1).setOrigin(0.5, 0);
+      this.expBar = scene.add.rectangle(GAME_SIZE.WIDTH / 2 - 100, this.uiTop + 10, 0, 20, 0x00ff00, 1).setOrigin(0, 0);
       this.expBarLevelText = scene.add.text(GAME_SIZE.WIDTH / 2, this.uiTop + 35, 'Nivel 1', {
         fontFamily: 'Arial', fontSize: '18px', color: '#ffffff'
       }).setOrigin(0.5, 0);
       this.exp = 0;
-      this.expMax = 100;
+      this.expMax = 500;
       this.expLevel = 1;
     }
 
@@ -114,10 +100,7 @@ export class Hud {
     this.events.on(EVENTS.hero.READY, this.onHeroReady, this);
     this.events.on(EVENTS.hero.DAMAGED, this.onHeroDamaged, this);
 
-    // Cambio de arma (texto central)
-    this.events.on('UI_WEAPON_CHANGE', (modeTxt) => {
-      this.setMode(modeTxt);
-    });
+
 
     scene.events.on(Phaser.Scenes.Events.SHUTDOWN, this.destroy, this);
     scene.events.on(Phaser.Scenes.Events.DESTROY, this.destroy, this);
@@ -167,7 +150,7 @@ export class Hud {
 
   // ===== MODO ARMA =====
   setMode(mode) {
-    this.modeText.setText(`MODE: ${mode}`);
+
   }
 
   // ===== EXPERIENCIA (solo PanicMode) =====
@@ -175,8 +158,8 @@ export class Hud {
     if (!this.expBar) return;
     this.exp = Math.max(0, Math.min(this.expMax, value));
     this.expBar.width = (this.exp / this.expMax) * 200;
+    this.expBar.x = GAME_SIZE.WIDTH / 2 - 100;
     this.expBarBg.width = 200;
-    this.expBar.x = this.expBarBg.x;
     this.expBarBg.x = GAME_SIZE.WIDTH / 2;
     this.expBarLevelText.setText(`Nivel ${this.expLevel}`);
   }
@@ -216,7 +199,7 @@ export class Hud {
     this.playerLabel?.destroy();
     this.lifeIcons?.forEach((icon) => icon.destroy());
     this.extraLivesText?.destroy();
-    this.modeText?.destroy();
+
     this.scoreText?.destroy();
     this.expBar?.destroy();
     this.expBarBg?.destroy();
