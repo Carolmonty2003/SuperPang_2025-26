@@ -6,78 +6,94 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   preload() {
-    // Puedes precargar imágenes aquí si tienes un fondo o logo
-    // this.load.image('title', 'assets/sprites/ui/title.png');
+    // Fondo del menú principal
+    this.load.image(
+      'mainMenuBg',
+      'assets/sprites/ui/MainSceneSprite.jpg'
+    );
   }
 
- create() {
-  const centerX = this.cameras.main.centerX;
-  const centerY = this.cameras.main.centerY;
+  create() {
+    const cam = this.cameras.main;
+    const centerX = cam.centerX;
+    const centerY = cam.centerY;
 
-  // Fondo
-  this.cameras.main.setBackgroundColor("#1d1d1d");
+    // Fondo negro por si la imagen no cubre todo
+    cam.setBackgroundColor('#000000');
 
-  // Título del juego
-  this.add.text(centerX, centerY - 100, "SUPER PANG", {
-    fontSize: "64px",
-    fill: "#ffffff",
-    fontFamily: "Arial",
-  }).setOrigin(0.5);
+    // ===== FONDO =====
+    const bg = this.add.image(centerX, centerY, 'mainMenuBg');
 
-  // ---------- BOTÓN JUGAR ----------
-  const playText = this.add.text(centerX, centerY + 20, "JUGAR", {
-    fontSize: "32px",
-    fill: "#ffffff",
-    fontFamily: "Arial",
-  }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    // Ajustar el fondo manteniendo proporción
+    const scaleX = cam.width / bg.width;
+    const scaleY = cam.height / bg.height;
+    const scale = Math.min(scaleX, scaleY);
 
-  playText.on("pointerover", () => playText.setStyle({ fill: "#f39c12" }));
-  playText.on("pointerout",  () => playText.setStyle({ fill: "#ffffff" }));
-  playText.on("pointerdown", () => {
-    this.scene.start("SelectModeScene");
-  });
+    bg.setScale(scale);
+    bg.setDepth(0);
 
-  // ---------- BOTÓN OPCIONES ----------
-const optionsText = this.add.text(centerX, centerY + 80, "OPTIONS", {
-  fontSize: "32px",
-  fill: "#ffffff",
-  fontFamily: "Arial",
-}).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    // ===== BOTÓN JUGAR =====
+    const playText = this.add.text(centerX, centerY + 360, 'JUGAR', {
+      fontSize: '32px',
+      fill: '#ffffff',
+      fontFamily: 'Arial'
+    })
+      .setOrigin(0.5)
+      .setDepth(1)
+      .setInteractive({ useHandCursor: true });
 
-optionsText.on("pointerover", () =>
-  optionsText.setStyle({ fill: "#f39c12" })
-);
-optionsText.on("pointerout", () =>
-  optionsText.setStyle({ fill: "#ffffff" })
-);
+    playText.on('pointerover', () =>
+      playText.setStyle({ fill: '#f39c12' })
+    );
+    playText.on('pointerout', () =>
+      playText.setStyle({ fill: '#ffffff' })
+    );
+    playText.on('pointerdown', () => {
+      this.scene.start('SelectModeScene');
+    });
 
-optionsText.on("pointerdown", () => {
-  this.scene.start("OptionsMenu", { from: "main" });
-});
+    // ===== BOTÓN OPTIONS =====
+    const optionsText = this.add.text(centerX - 200, centerY + 360, 'OPTIONS', {
+      fontSize: '32px',
+      fill: '#ffffff',
+      fontFamily: 'Arial'
+    })
+      .setOrigin(0.5)
+      .setDepth(1)
+      .setInteractive({ useHandCursor: true });
 
+    optionsText.on('pointerover', () =>
+      optionsText.setStyle({ fill: '#f39c12' })
+    );
+    optionsText.on('pointerout', () =>
+      optionsText.setStyle({ fill: '#ffffff' })
+    );
+    optionsText.on('pointerdown', () => {
+      this.scene.start('OptionsMenu', { from: 'main' });
+    });
 
-  // ---------- BOTÓN SALIR ----------
-  const exitText = this.add.text(centerX, centerY + 140, "EXIT", {
-    fontSize: "32px",
-    fill: "#ffffff",
-    fontFamily: "Arial",
-  }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    // ===== BOTÓN EXIT =====
+    const exitText = this.add.text(centerX + 180, centerY + 360, 'EXIT', {
+      fontSize: '32px',
+      fill: '#ffffff',
+      fontFamily: 'Arial'
+    })
+      .setOrigin(0.5)
+      .setDepth(1)
+      .setInteractive({ useHandCursor: true });
 
-  exitText.on("pointerover", () => exitText.setStyle({ fill: "#f39c12" }));
-  exitText.on("pointerout",  () => exitText.setStyle({ fill: "#ffffff" }));
-  exitText.on("pointerdown", () => {
-    // En navegador no se puede “cerrar” de verdad,
-    // pero podemos destruir el juego para simular que se cierra.
-    this.game.destroy(true);
-    // Opcional: mostrar mensaje
-    // alert("Gracias por jugar :)");
-  });
-}
-
-
-  update(time, delta) {
-    // Animaciones o lógica continua, si se desea
+    exitText.on('pointerover', () =>
+      exitText.setStyle({ fill: '#f39c12' })
+    );
+    exitText.on('pointerout', () =>
+      exitText.setStyle({ fill: '#ffffff' })
+    );
+    exitText.on('pointerdown', () => {
+      this.game.destroy(true);
+    });
   }
+
+  update(time, delta) {}
 }
 
 export default MainMenuScene;

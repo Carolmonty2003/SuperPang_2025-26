@@ -3,6 +3,8 @@
 
 //importamos la configuración del juego
 import { buildConfig } from "./core/config.js";
+
+import { IntroScene } from './scenes/IntroScene.js';
 //importamos los menus
 import { MainMenuScene } from './scenes/MainMenuScene.js';
 import { SelectModeScene } from './scenes/SelectModeScene.js';
@@ -20,6 +22,7 @@ import Level_01 from "./scenes/Level_01.js";
 const game = new Phaser.Game(buildConfig({
     scenes: [
         //Boot, // si hay una escena de carga
+        IntroScene,
         MainMenuScene,
         SelectModeScene,
         OptionsMenu,

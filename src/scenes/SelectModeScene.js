@@ -5,141 +5,87 @@ export class SelectModeScene extends Phaser.Scene {
     super({ key: "SelectModeScene" });
   }
 
+  preload() {
+    this.load.image(
+      "selectModeBg",
+      "assets/sprites/ui/SelectModeSceneSprite.png"
+    );
+  }
+
   create() {
     const cam = this.cameras.main;
     const centerX = cam.centerX;
     const centerY = cam.centerY;
 
-    // Fondo oscuro tipo recreativa
-    cam.setBackgroundColor("#000022");
+    // Fondo negro por si la imagen no cubre todo
+    cam.setBackgroundColor("#000000");
 
-    // Título
-    this.add
-      .text(centerX, centerY - 180, "SELECT GAME", {
-        fontSize: "48px",
-        fontFamily: "Arial",
-        color: "#ffb6c1",
-      })
-      .setOrigin(0.5);
+    // ===== Fondo imagen =====
+    const bg = this.add.image(centerX, centerY, "selectModeBg").setDepth(0);
 
-    // Texto inferior tipo original
-    this.add
-      .text(centerX, centerY + 200, "SUPER PANG!", {
-        fontSize: "32px",
-        fontFamily: "Arial",
-        color: "#ffcc33",
-      })
-      .setOrigin(0.5);
+    // Escalar manteniendo proporción (sin deformar)
+    const scaleX = cam.width / bg.width;
+    const scaleY = cam.height / bg.height;
+    const scale = Math.min(scaleX, scaleY);
+    bg.setScale(scale);
 
-    // ---------- BOTÓN TOUR MODE ----------
-    const tourBox = this.add.rectangle(
-      centerX - 250,
-      centerY,
-      380,
-      220,
-      0x333333,
-      0.8
-    );
-    tourBox.setStrokeStyle(3, 0xffcc00);
+    // ===== ZONAS CLICABLES encima de los recuadros =====
+    // Ajusta estos valores si tu imagen no coincide perfecto.
+    const boxW = 410;
+    const boxH = 290;
 
-    const tourTitle = this.add
-      .text(tourBox.x, tourBox.y - 60, "TOUR MODE", {
-        fontSize: "32px",
-        fontFamily: "Arial",
-        color: "#ffcc00",
-      })
-      .setOrigin(0.5);
+    const panicX = centerX - 325; // izquierda (Panic)
+    const tourX = centerX + 325;  // derecha (Tour)
+    const boxY = centerY - 145;    // un pelín arriba (como en la screenshot)
 
-    const tourDesc = this.add
-      .text(
-        tourBox.x,
-        tourBox.y + 10,
-        "Enjoy your trip\naround the world.\n40 stages to clear!",
-        {
-          fontSize: "18px",
-          fontFamily: "Arial",
-          color: "#ffffff",
-          align: "center",
-        }
-      )
-      .setOrigin(0.5);
+    // borde de hover para dar feedback
+    const panicHover = this.add
+      .rectangle(panicX, boxY, boxW, boxH)
+      .setStrokeStyle(4, 0x00ffff)
+      .setAlpha(0)
+      .setDepth(1);
 
-    const tourZone = this.add
-      .zone(tourBox.x, tourBox.y, tourBox.width, tourBox.height)
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true });
+    const tourHover = this.add
+      .rectangle(tourX, boxY, boxW, boxH)
+      .setStrokeStyle(4, 0x00ffff)
+      .setAlpha(0)
+      .setDepth(1);
 
-    // Hover TOUR
-    tourZone.on("pointerover", () => {
-      tourBox.setFillStyle(0x555555, 1);
-      tourTitle.setColor("#ffffff");
-    });
-
-    tourZone.on("pointerout", () => {
-      tourBox.setFillStyle(0x333333, 0.8);
-      tourTitle.setColor("#ffcc00");
-    });
-
-    // Click TOUR -> ahora abre el nuevo Level_01
-    tourZone.on("pointerdown", () => {
-      this.scene.start("Level_01", { mode: "tour" });
-    });
-
-    // ---------- BOTÓN PANIC MODE ----------
-    const panicBox = this.add.rectangle(
-      centerX + 250,
-      centerY,
-      380,
-      220,
-      0x333333,
-      0.8
-    );
-    panicBox.setStrokeStyle(3, 0xff3366);
-
-    const panicTitle = this.add
-      .text(panicBox.x, panicBox.y - 60, "PANIC MODE", {
-        fontSize: "32px",
-        fontFamily: "Arial",
-        color: "#ff3366",
-      })
-      .setOrigin(0.5);
-
-    const panicDesc = this.add
-      .text(
-        panicBox.x,
-        panicBox.y + 10,
-        "Balloons keep pouring down!\nHow long can you survive?",
-        {
-          fontSize: "18px",
-          fontFamily: "Arial",
-          color: "#ffffff",
-          align: "center",
-        }
-      )
-      .setOrigin(0.5);
-
+    // ZONA PANIC
     const panicZone = this.add
-      .zone(panicBox.x, panicBox.y, panicBox.width, panicBox.height)
+      .zone(panicX, boxY, boxW, boxH)
       .setOrigin(0.5)
+      .setDepth(2)
       .setInteractive({ useHandCursor: true });
 
-    // Hover PANIC
     panicZone.on("pointerover", () => {
-      panicBox.setFillStyle(0x555555, 1);
-      panicTitle.setColor("#ffffff");
+      panicHover.setAlpha(1);
     });
-
     panicZone.on("pointerout", () => {
-      panicBox.setFillStyle(0x333333, 0.8);
-      panicTitle.setColor("#ff3366");
+      panicHover.setAlpha(0);
     });
-
-    // Click PANIC -> sigue abriendo el Level1 clásico
     panicZone.on("pointerdown", () => {
       this.scene.start("Level1", { mode: "panic" });
     });
 
-    // Tecla ESC para volver al menú principal
+    // ZONA TOUR
+    const tourZone = this.add
+      .zone(tourX, boxY, boxW, boxH)
+      .setOrigin(0.5)
+      .setDepth(2)
+      .setInteractive({ useHandCursor: true });
+
+    tourZone.on("pointerover", () => {
+      tourHover.setAlpha(1);
+    });
+    tourZone.on("pointerout", () => {
+      tourHover.setAlpha(0);
+    });
+    tourZone.on("pointerdown", () => {
+      this.scene.start("Level_01", { mode: "tour" });
+    });
+
+    // ESC para volver al menú principal
     this.input.keyboard.on("keydown-ESC", () => {
       this.scene.start("MainMenuScene");
     });
