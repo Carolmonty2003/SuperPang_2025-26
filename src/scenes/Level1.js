@@ -6,11 +6,9 @@ import { Hud } from "../UI/HUD.js";
 import { Platform } from "../objects/Platform.js";
 import { PlatformManager } from "../objects/platforms/PlatformManager.js";
 import { WallManager } from "../objects/WallManager.js";
-import { HugeBall } from "../entities/enemies/balls/normal/HugeBall.js";
-import { TinyBall } from "../entities/enemies/balls/normal/TinyBall.js";
-import { HexBigBall } from "../entities/enemies/balls/hexagonal/HexBigBall.js";
-import { BALL_COLORS } from "../entities/enemies/balls/BallConstants.js";
+import { BallManager } from "../entities/enemies/balls/BallManager.js";
 import { Dropper } from "../entities/items/Dropper.js";
+import { DropManager } from "../entities/items/DropManager.js";
 
 //test temporal pajaros
 import { SmallBird } from "../entities/enemies/birds/SmallBird.js";
@@ -24,6 +22,18 @@ export class Level1 extends Phaser.Scene {
   constructor() {
     super({ key: "Level1" });
     this.platformObjects = new Map();
+    this.heroBallOverlap = null; // Referencia al overlap pelotas-héroe
+
+    // Time effects (stackables)
+    this.isTimeFrozen = false;
+    this._timeFreezeEnd = 0;
+    this._timeFreezeTimer = null;
+    this._timeFreezeOverlay = null;
+
+    this.isTimeSlowed = false;
+    this._timeSlowEnd = 0;
+    this._timeSlowTimer = null;
+    this._timeSlowOverlay = null;
   }
 
   preload() {
@@ -189,6 +199,10 @@ export class Level1 extends Phaser.Scene {
     // Bounds mundo físico
     this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
+    // Mejorar colisiones tilemap (reduce tunneling)
+    this.physics.world.TILE_BIAS = 64;
+    this.physics.world.overlapBias = 32;
+
     // --- INPUT ---
     this.cursors = this.input.keyboard.createCursorKeys();
     this.keyShoot = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
@@ -233,7 +247,7 @@ export class Level1 extends Phaser.Scene {
     this.physics.add.collider(this.ballsGroup, this.platformsStatic, this.bounceBall, null, this);
     this.physics.add.collider(this.ballsGroup, this.platformsBreakable, this.bounceBall, null, this);
     // Overlap con el héroe - NO hay separación física automática, solo rebote manual
-    this.physics.add.overlap(this.ballsGroup, this.hero, this.bounceOffHero, null, this);
+    this.heroBallOverlap = this.physics.add.overlap(this.ballsGroup, this.hero, this.bounceOffHero, null, this);
 
     // --- ANIM IDLE ---
     if (!this.anims.exists("idle")) {
@@ -246,51 +260,26 @@ export class Level1 extends Phaser.Scene {
     }
     this.hero.play("idle");
 
-    // --- PELOTA INICIAL ---
-    this.createBall();
+    // ===================== BALLS (DESDE TILED) =====================
+    this.ballManager = new BallManager(this, this.map, this.ballsGroup);
+    this.ballManager.createFromObjectLayer('balls');
 
     // --- DROPPER (SISTEMA DE ITEMS) ---
+
     this.dropper = new Dropper(this, {
-      dropChance: 0.5, // 50% de probabilidad de drop (puedes ajustar)
+      dropChance: 1, // 50% de probabilidad de drop (puedes ajustar)
       maxItems: 8
     });
+
+    // --- MANAGER DE DROPS ---
+    this.dropManager = new DropManager(this, map, this.dropper, this.platformManager, this.platformObjects);
+    this.dropManager.createDropsFromLayers();
 
     // --- COLISIONES ITEMS (sin rebote) ---
     // Los items colisionan con paredes y plataformas pero no rebotan
     this.wallManager.addGroupCollider(this.dropper.activeItems);
     this.physics.add.collider(this.dropper.activeItems, this.platformsStatic);
     this.physics.add.collider(this.dropper.activeItems, this.platformsBreakable);
-
-    // ===== TEST MODE: DROPEAR ITEMS PARA PROBAR =====
-    this.time.delayedCall(500, () => {
-      // Fila superior - Power-ups
-      this.dropper.dropFrom(null, 300, 200, { itemType: 'POWER_UP_SHIELD', guaranteed: true });
-      this.dropper.dropFrom(null, 450, 200, { itemType: 'POWER_UP_LIFE', guaranteed: true });
-      this.dropper.dropFrom(null, 600, 200, { itemType: 'POWER_UP_SPEED', guaranteed: true });
-      this.dropper.dropFrom(null, 750, 200, { itemType: 'POWER_UP_BOMB', guaranteed: true });
-      
-      // Fila media - Armas temporales
-      this.dropper.dropFrom(null, 300, 400, { itemType: 'WEAPON_TEMP_DOUBLE', guaranteed: true });
-      this.dropper.dropFrom(null, 500, 400, { itemType: 'WEAPON_TEMP_MACHINE', guaranteed: true });
-      this.dropper.dropFrom(null, 700, 400, { itemType: 'WEAPON_TEMP_FIXED', guaranteed: true });
-      
-      // Fila inferior - Tiempo y frutas
-      this.dropper.dropFrom(null, 350, 600, { itemType: 'TIME_FREEZE', guaranteed: true });
-      this.dropper.dropFrom(null, 550, 600, { itemType: 'TIME_SLOW', guaranteed: true });
-      this.dropper.dropFrom(null, 750, 600, { itemType: 'FRUITS', guaranteed: true });
-    });
-    // ===== FIN TEST MODE =====
-
-    // --- COLISIONES ARMAS CON PAREDES/TECHO ---
-    // Balas se destruyen al tocar paredes/techo
-    this.wallManager.addWeaponOverlap(this.bullets, (bullet) => {
-      if (bullet && bullet.active) {
-        bullet.destroy();
-      }
-    });
-
-    // Arpones normales se destruyen al tocar paredes/techo
-    // (Se maneja en el collider del grupo activeHarpoons dinámicamente en create)
 
     // --- HUD ---
     this.hud = new Hud(this, {
@@ -534,7 +523,7 @@ export class Level1 extends Phaser.Scene {
 
     // Cooldown para evitar rebotes múltiples
     const now = Date.now();
-    if (ball._lastBounce && now - ball._lastBounce < 100) {
+    if (ball._lastBounce && now - ball._lastBounce < 60) {
       return; // Ignorar si rebotó hace menos de 100ms
     }
     ball._lastBounce = now;
@@ -556,26 +545,33 @@ export class Level1 extends Phaser.Scene {
     // Rebote perfecto: usar velocidad constante guardada
     if (ball.body.blocked.down || ball.body.touching.down) {
       ball.body.setVelocityY(-ball._constantBounceVel.y);
-      ball.y -= 5; // Mayor separación
+      ball.y -= 2; // Separación pequeña para evitar re-colisión inmediata
     }
     
     if (ball.body.blocked.up || ball.body.touching.up) {
-      // Cuando rebota desde ABAJO de una plataforma, usar velocidad MUY reducida
-      // para evitar que atraviese el suelo en el siguiente frame
-      const downwardVel = 150; // Velocidad fija baja para evitar atravesar suelo
+      // Rebote desde ABAJO de una plataforma:
+      // - evita impulsos hacia abajo demasiado fuertes (tunneling)
+      // - separa poco para no "empujar" la bola dentro de otras colisiones
+      const downwardVel = Math.min(200, Math.max(80, ball._constantBounceVel.y * 0.35));
       ball.body.setVelocityY(downwardVel);
-      ball.y += 10; // Mayor separación de la plataforma
+      ball.y += 2;
     }
     
     // Rebote horizontal (izquierda/derecha)
     if (ball.body.blocked.left || ball.body.touching.left) {
       ball.body.setVelocityX(ball._constantBounceVel.x);
-      ball.x += 10; // Mayor separación de la pared
+      ball.x += 2;
     }
     
     if (ball.body.blocked.right || ball.body.touching.right) {
       ball.body.setVelocityX(-ball._constantBounceVel.x);
-      ball.x -= 10; // Mayor separación de la pared
+      ball.x -= 2;
+    }
+
+    // Clamp de seguridad (Arcade puede tunelizar con picos de velocidad)
+    if (ball.maxVelocityX && ball.maxVelocityY) {
+      ball.body.velocity.x = Phaser.Math.Clamp(ball.body.velocity.x, -ball.maxVelocityX, ball.maxVelocityX);
+      ball.body.velocity.y = Phaser.Math.Clamp(ball.body.velocity.y, -ball.maxVelocityY, ball.maxVelocityY);
     }
   }
 
@@ -583,7 +579,188 @@ export class Level1 extends Phaser.Scene {
     if (!ball || !ball.body || !hero || !hero.body) return;
 
     // El JUGADOR recibe daño cuando toca la pelota
+    if (this.isTimeFrozen) return; // No daño durante time freeze
     hero.takeDamage(1);
+  }
+
+  // ===================== TIME EFFECTS (STACK) =====================
+  addTimeFreeze(durationMs) {
+    const now = this.time.now;
+    const base = Math.max(this._timeFreezeEnd || 0, now);
+    this._timeFreezeEnd = base + durationMs;
+
+    // Si ya estaba congelado, solo extendemos
+    if (!this.isTimeFrozen) {
+      this.isTimeFrozen = true;
+      this.disableHeroBallOverlap();
+      this._freezeGroups();
+      this._showFreezeOverlay();
+    }
+
+    // Reschedule timer al nuevo end
+    if (this._timeFreezeTimer) this._timeFreezeTimer.remove(false);
+    this._timeFreezeTimer = this.time.delayedCall(
+      this._timeFreezeEnd - now,
+      () => {
+        this.isTimeFrozen = false;
+        this.enableHeroBallOverlap();
+        this._unfreezeGroups();
+        this._hideFreezeOverlay();
+        this._timeFreezeTimer = null;
+      },
+      null,
+      this
+    );
+  }
+
+  addTimeSlow(durationMs, multiplier = 0.5) {
+    const now = this.time.now;
+    const base = Math.max(this._timeSlowEnd || 0, now);
+    this._timeSlowEnd = base + durationMs;
+
+    // Solo aplicamos el slow una vez (evita acumular multiplicadores)
+    if (!this.isTimeSlowed) {
+      this.isTimeSlowed = true;
+      this._timeSlowMultiplier = multiplier;
+      this._slowGroups(multiplier);
+      this._showSlowOverlay();
+    }
+
+    if (this._timeSlowTimer) this._timeSlowTimer.remove(false);
+    this._timeSlowTimer = this.time.delayedCall(
+      this._timeSlowEnd - now,
+      () => {
+        this.isTimeSlowed = false;
+        this._restoreSlowGroups();
+        this._hideSlowOverlay();
+        this._timeSlowTimer = null;
+      },
+      null,
+      this
+    );
+  }
+
+  _freezeGroups() {
+    // Balls
+    if (this.ballsGroup) {
+      this.ballsGroup.getChildren().forEach(ball => {
+        if (!ball || !ball.body || !ball.active) return;
+        if (ball._isFrozen) return;
+        ball._isFrozen = true;
+        ball._frozenVel = { x: ball.body.velocity.x, y: ball.body.velocity.y };
+        ball.body.setVelocity(0, 0);
+      });
+    }
+
+    // Birds
+    if (this.birdsGroup) {
+      this.birdsGroup.getChildren().forEach(bird => {
+        if (!bird || !bird.body || !bird.active) return;
+        if (bird._isFrozen) return;
+        bird._isFrozen = true;
+        bird._frozenVel = { x: bird.body.velocity.x, y: bird.body.velocity.y };
+        bird.body.setVelocity(0, 0);
+      });
+    }
+
+    // Crocodiles
+    if (this.crocodilesGroup) {
+      this.crocodilesGroup.getChildren().forEach(croc => {
+        if (!croc || !croc.body || !croc.active) return;
+        if (croc._isFrozen) return;
+        croc._isFrozen = true;
+        croc._frozenVel = { x: croc.body.velocity.x, y: croc.body.velocity.y };
+        croc.body.setVelocity(0, 0);
+      });
+    }
+  }
+
+  _unfreezeGroups() {
+    const restore = (obj) => {
+      if (!obj || !obj.body) return;
+      if (!obj._isFrozen) return;
+      obj._isFrozen = false;
+      const v = obj._frozenVel || { x: 0, y: 0 };
+      obj.body.setVelocity(v.x, v.y);
+      obj._frozenVel = null;
+    };
+
+    this.ballsGroup?.getChildren().forEach(restore);
+    this.birdsGroup?.getChildren().forEach(restore);
+    this.crocodilesGroup?.getChildren().forEach(restore);
+  }
+
+  _slowGroups(multiplier) {
+    const apply = (obj) => {
+      if (!obj || !obj.body || !obj.active) return;
+      if (obj._isSlowed) return;
+      obj._isSlowed = true;
+      obj._slowOriginalVel = { x: obj.body.velocity.x, y: obj.body.velocity.y };
+      obj.body.setVelocity(obj.body.velocity.x * multiplier, obj.body.velocity.y * multiplier);
+    };
+
+    this.ballsGroup?.getChildren().forEach(apply);
+    this.birdsGroup?.getChildren().forEach(apply);
+    this.crocodilesGroup?.getChildren().forEach(apply);
+  }
+
+  _restoreSlowGroups() {
+    const restore = (obj) => {
+      if (!obj || !obj.body) return;
+      if (!obj._isSlowed) return;
+      obj._isSlowed = false;
+      const v = obj._slowOriginalVel || { x: obj.body.velocity.x, y: obj.body.velocity.y };
+      obj.body.setVelocity(v.x, v.y);
+      obj._slowOriginalVel = null;
+    };
+
+    this.ballsGroup?.getChildren().forEach(restore);
+    this.birdsGroup?.getChildren().forEach(restore);
+    this.crocodilesGroup?.getChildren().forEach(restore);
+  }
+
+  _showFreezeOverlay() {
+    if (this._freezeOverlay) return;
+    this._freezeOverlay = this.add
+      .rectangle(
+        this.cameras.main.centerX,
+        this.cameras.main.centerY,
+        this.cameras.main.width,
+        this.cameras.main.height,
+        0x66ccff,
+        0.15
+      )
+      .setScrollFactor(0)
+      .setDepth(999);
+  }
+
+  _hideFreezeOverlay() {
+    if (this._freezeOverlay) {
+      this._freezeOverlay.destroy();
+      this._freezeOverlay = null;
+    }
+  }
+
+  _showSlowOverlay() {
+    if (this._slowOverlay) return;
+    this._slowOverlay = this.add
+      .rectangle(
+        this.cameras.main.centerX,
+        this.cameras.main.centerY,
+        this.cameras.main.width,
+        this.cameras.main.height,
+        0x8800ff,
+        0.08
+      )
+      .setScrollFactor(0)
+      .setDepth(998);
+  }
+
+  _hideSlowOverlay() {
+    if (this._slowOverlay) {
+      this._slowOverlay.destroy();
+      this._slowOverlay = null;
+    }
   }
 
   update() {
@@ -790,7 +967,16 @@ export class Level1 extends Phaser.Scene {
       if (ball.takeDamage) ball.takeDamage();
     }
   }
+
+  // Llama a esto cuando se active el time freeze
+  disableHeroBallOverlap() {
+    if (this.heroBallOverlap) this.heroBallOverlap.active = false;
+  }
+
+  // Llama a esto cuando termine el time freeze
+  enableHeroBallOverlap() {
+    if (this.heroBallOverlap) this.heroBallOverlap.active = true;
+  }
 }
 
 export default Level1;
-0

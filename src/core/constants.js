@@ -17,7 +17,6 @@ export const PHYSICS = {
 };
 
 export const HERO = {
-    SPEED: 250,
     JUMP_FORCE: -450, // En Pang no se suele saltar mucho, pero por si acaso.
     MAX_LIVES: 3,
     LADDER_SPEED: 150
@@ -32,7 +31,6 @@ export const WEAPON = {
 export const BALLS = {
     BALL_BOUNCE: 1.0, // Rebote perfecto (100% de energía conservada)
     BALL_GRAVITY: 600, // Gravedad específica para bolas
-    SPEED_X: 150
 };
 
 export const RENDER = {
@@ -66,7 +64,6 @@ export const ITEMS = {
         SCORE_BONUS: 8000,
         POWER_UP_LIFE: 10000,
         POWER_UP_SHIELD: 8000,
-        POWER_UP_SPEED: 9000,
         POWER_UP_WEAPON: 7000,
         WEAPON_TEMP_DOUBLE: 7000,
         WEAPON_TEMP_MACHINE: 7000,
@@ -88,7 +85,6 @@ export const ITEMS = {
     DURATION: {
         SHIELD: 30000,      // 30 seconds shield duration
         SHIELD_INVULN_AFTER_BREAK: 1000, // 1 second invuln after shield breaks
-        SPEED_BOOST: 8000,  // 8 seconds speed boost
         WEAPON_TEMP: 15000, // 15 seconds temporary weapon
         TIME_FREEZE: 10000, // 10 seconds time freeze
         TIME_SLOW: 12000    // 12 seconds slow motion
@@ -96,7 +92,6 @@ export const ITEMS = {
     
     // Power-up multipliers
     MULTIPLIER: {
-        SPEED: 1.5, // 50% speed increase
         SLOW_MOTION: 0.4 // 40% speed (60% slower)
     }
 };

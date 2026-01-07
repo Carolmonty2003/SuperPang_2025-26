@@ -58,8 +58,13 @@ export class PowerUpTimeFreeze extends BaseItem {
       onComplete: () => freezeText.destroy()
     });
     
-    // Apply time freeze effect
-    this.freezeAllBalls(scene, ITEMS.DURATION.TIME_FREEZE);
+    // Apply (and stack) time freeze effect using the scene manager
+    if (scene && typeof scene.addTimeFreeze === 'function') {
+      scene.addTimeFreeze(ITEMS.DURATION.TIME_FREEZE);
+    } else {
+      // Fallback (older scenes)
+      this.freezeAllBalls(scene, ITEMS.DURATION.TIME_FREEZE);
+    }
     
     // Optional: Camera flash effect
     scene.cameras.main.flash(200, 100, 200, 255);

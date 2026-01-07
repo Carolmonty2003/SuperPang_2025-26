@@ -27,20 +27,15 @@ export class Hud {
     this.maxLives = HERO?.MAX_LIVES ?? 3;
     this.lifeIcons = [];
 
-    // En Pang: 3 vidas -> 2 iconos visibles
-    const iconsToCreate = Math.max(0, this.maxLives - 1);
     const baseX = 24;
     const spacing = 40;
-
-    // Iconos pegados a la parte baja de la HUD (como el original)
     const iconY = this.uiTop + this.uiHeight - 20;
-
-    for (let i = 0; i < iconsToCreate; i++) {
+    // Crear solo 3 iconos de vida
+    for (let i = 0; i < 3; i++) {
       const icon = scene.add
-        .image(baseX + i * spacing, iconY, 'player_walk', 0) // frame 0
-        .setOrigin(0, 1) // esquina inferior izquierda
+        .image(baseX + i * spacing, iconY, 'player', 0)
+        .setOrigin(0, 1)
         .setScale(0.5);
-
       this.lifeIcons.push(icon);
     }
 
@@ -55,7 +50,7 @@ export class Hud {
 
     // Texto para vidas extra (x{número}) - oculto inicialmente
     this.extraLivesText = scene.add
-      .text(baseX + (iconsToCreate * spacing) + 10, iconY, '', {
+      .text(baseX + (3 * spacing) + 10, iconY, '', {
         fontFamily: 'Arial',
         fontSize: '24px',
         color: '#ffff00',
@@ -134,24 +129,22 @@ export class Hud {
   setLives(value) {
     this.lives = value;
 
-    // nº de iconos visibles = vidas - 1 (como en Pang)
-    // 3 vidas -> 2 iconos
-    // 2 vidas -> 1 icono
-    // 1 o 0 vidas -> 0 iconos
-    const visibleIcons = Math.max(
-      0,
-      Math.min(this.maxLives - 1, (value ?? 0) - 1)
-    );
-
+    // Mostrar hasta 3 sprites según las vidas
+    // Ejemplo:
+    // 1 vida  -> 1 sprite
+    // 2 vidas -> 2 sprites
+    // 3 vidas -> 3 sprites
+    // 4 vidas -> 3 sprites + X1
+    // 5 vidas -> 3 sprites + X2
+    const actualValue = value ?? 0;
+    const visibleIcons = Math.min(3, actualValue);
     this.lifeIcons.forEach((icon, index) => {
       icon.setVisible(index < visibleIcons);
     });
-
-    // Si tiene más de 3 vidas, mostrar el contador de vidas extra
-    // Ejemplo: 5 vidas = 2 iconos visibles + "x3" (porque 5 - 2 = 3)
-    if (value > 3) {
-      const extraLives = value - 2; // Total de vidas menos las 2 mostradas como iconos
-      this.extraLivesText.setText(`x${extraLives}`);
+    // Vidas extra (solo si hay más de 3)
+    const extraLives = Math.max(0, actualValue - 3);
+    if (extraLives > 0) {
+      this.extraLivesText.setText(`X${extraLives}`);
       this.extraLivesText.setVisible(true);
     } else {
       this.extraLivesText.setVisible(false);

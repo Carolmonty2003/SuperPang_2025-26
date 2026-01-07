@@ -58,29 +58,13 @@ export class PowerUpTimeSlow extends BaseItem {
       onComplete: () => slowText.destroy()
     });
     
-    // Apply slow motion effect
-    this.slowAllBalls(scene, ITEMS.DURATION.TIME_SLOW, ITEMS.MULTIPLIER.SLOW_MOTION);
-    
-    // Optional: Screen tint effect
-    const tintOverlay = scene.add.rectangle(
-      scene.cameras.main.centerX,
-      scene.cameras.main.centerY,
-      scene.cameras.main.width,
-      scene.cameras.main.height,
-      0xFFCC00,
-      0.15
-    );
-    tintOverlay.setDepth(998);
-    tintOverlay.setScrollFactor(0);
-    
-    scene.time.delayedCall(ITEMS.DURATION.TIME_SLOW, () => {
-      scene.tweens.add({
-        targets: tintOverlay,
-        alpha: 0,
-        duration: 500,
-        onComplete: () => tintOverlay.destroy()
-      });
-    });
+    // Apply (and stack) slow motion using the scene manager
+    if (scene && typeof scene.addTimeSlow === 'function') {
+      scene.addTimeSlow(ITEMS.DURATION.TIME_SLOW, ITEMS.MULTIPLIER.SLOW_MOTION);
+    } else {
+      // Fallback (old behavior)
+      this.slowAllBalls(scene, ITEMS.DURATION.TIME_SLOW, ITEMS.MULTIPLIER.SLOW_MOTION);
+    }
     
     // Optional: play sound
     // scene.sound.play('time_slow', { volume: 0.5 });
