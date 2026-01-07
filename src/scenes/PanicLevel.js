@@ -1,6 +1,7 @@
 // src/scenes/PanicLevel.js
 
 import { Hero } from '../entities/Hero.js';
+import { WallManager } from '../objects/WallManager.js';
 
 import { HugeBall } from '../entities/enemies/balls/normal/HugeBall.js';
 import { BigBall } from '../entities/enemies/balls/normal/BigBall.js';
@@ -36,6 +37,16 @@ export class PanicLevel extends Phaser.Scene {
 
     // --- SPRITES DEL HÉROE (los que usa Hero.js) ---
     this.load.setPath('assets/sprites/spritesheets/hero');
+    
+    // Spritesheet principal del héroe (requerido por Hero.createAnimations())
+    this.load.spritesheet('player', 'spritesheet_player.png', {
+      frameWidth: 118,
+      frameHeight: 127,
+      spacing: 0,
+      margin: 0
+    });
+    
+    // Spritesheets adicionales para animaciones extendidas
     this.load.spritesheet('player_walk', 'player_walk.png', {
       frameWidth: 109, // 4 frames
       frameHeight: 118,
@@ -91,8 +102,13 @@ export class PanicLevel extends Phaser.Scene {
     // --- MAPA ---
     const map = this.make.tilemap({ key: 'map_marco' });
     const tileset = map.addTilesetImage('tileset_muros', 'tileset_muros_img');
-    this.walls = map.createLayer('layer_walls', tileset, 0, 0);
-    this.walls.setCollisionByExclusion([-1]);
+    
+    // --- WALL MANAGER (floor/ceiling layers) ---
+    this.wallManager = new WallManager(this, map, {
+      floorLayer: 'layer_floor',
+      ceilingLayer: 'layer_ceiling',
+      tilesetName: tileset
+    });
 
     // Mundo físico solo hasta la altura del mapa (ej: 832)
     this.physics.world.bounds.width = map.widthInPixels;
@@ -113,26 +129,32 @@ export class PanicLevel extends Phaser.Scene {
     this.burstClearActive = false; // Track if burst clear is active
     this.markedForBurst = new Set(); // Balls marked for burst destruction
 
-
-
     // --- GRUPOS ---
     this.ballsGroup = this.physics.add.group();
     this.bullets = this.add.group({ runChildUpdate: true }); 
    
-    this.physics.add.collider(this.bullets, this.walls, (bullet, tile) => {
+    // Weapon overlap with ceiling (destroys bullets)
+    this.wallManager.addWeaponOverlap(this.bullets, (bullet) => {
       if (bullet && bullet.active) bullet.destroy();
     });
     
     // --- HÉROE ---
     const startX = map.widthInPixels / 2;
     const startY = map.heightInPixels - 64;
-
     
-    this.hero = new Hero(this, startX, startY, 'player_walk');
-    this.physics.add.collider(this.hero, this.walls);
+    this.hero = new Hero(this, startX, startY, 'player');
+    
+    // Configuración del héroe (como en Level1)
+    this.hero.body.immovable = true;
+    this.hero.body.pushable = false;
+    this.hero.body.moves = true;
+    this.hero.body.setMass(10000);
+    this.hero.body.setGravityY(600); // Añadir gravedad para que no atraviese el suelo
+    
+    this.wallManager.addHeroCollider(this.hero);
 
     // --- COLISIONES BOLAS ---
-    this.physics.add.collider(this.ballsGroup, this.walls, this.bounceBall, null, this);
+    this.wallManager.addGroupCollider(this.ballsGroup, this.bounceBall, this);
     // Store overlap collider to enable/disable during time stop
     this.heroBallOverlap = this.physics.add.overlap(this.ballsGroup, this.hero, this.onHeroHitBall, null, this);
 
@@ -166,7 +188,7 @@ export class PanicLevel extends Phaser.Scene {
   }
 
   createBall(x = null, y = null, ballType = null) {
-    const startX = x !== null ? x : this.walls.width / 2;
+    const startX = x !== null ? x : this.wallManager.getFloorLayer().width / 2;
     const startY = y !== null ? y : 200;
 
     let ball;
@@ -294,10 +316,10 @@ export class PanicLevel extends Phaser.Scene {
 
     // Colisión Arpón Fijo vs bolas
     if (this.hero.activeFixedHarpoon && this.hero.activeFixedHarpoon.active) {
-      // Colisión con paredes para pegarse
+      // Colisión con techo para pegarse
       this.physics.collide(
         this.hero.activeFixedHarpoon,
-        this.walls,
+        this.wallManager.getCeilingLayer(),
         (harpoon, tile) => {
           if (harpoon && harpoon.onWallCollision) {
             harpoon.onWallCollision();

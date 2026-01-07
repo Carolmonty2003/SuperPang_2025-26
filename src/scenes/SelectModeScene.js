@@ -65,7 +65,7 @@ export class SelectModeScene extends Phaser.Scene {
       panicHover.setAlpha(0);
     });
     panicZone.on("pointerdown", () => {
-      this.scene.start("Level1", { mode: "panic" });
+      this.scene.start("PanicLevel", { mode: "panic" });
     });
 
     // ZONA TOUR
@@ -82,7 +82,7 @@ export class SelectModeScene extends Phaser.Scene {
       tourHover.setAlpha(0);
     });
     tourZone.on("pointerdown", () => {
-      this.scene.start("Level_01", { mode: "tour" });
+      this.scene.start("Level1", { mode: "tour" });
     });
 
     // ESC para volver al menú principal

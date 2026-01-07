@@ -16,6 +16,10 @@ import { Dropper } from "../entities/items/Dropper.js";
 import { SmallBird } from "../entities/enemies/birds/SmallBird.js";
 import { BIRD_SPAWN_HEIGHTS, BIRD_COLORS } from "../entities/enemies/birds/BirdConstants.js";
 
+// Cocodrilos
+import { Crocodile } from "../entities/enemies/crocodiles/Crocodile.js";
+import { CROCODILE_COLORS } from "../entities/enemies/crocodiles/CrocodileConstants.js";
+
 export class Level1 extends Phaser.Scene {
   constructor() {
     super({ key: "Level1" });
@@ -85,12 +89,19 @@ export class Level1 extends Phaser.Scene {
       frameHeight: 20
     });
 
-    // --- 9. PAJAROS --- TEMPORAAAAAAAAAAAAAAAAAAAAAAAL-------------------------------------------
-    // --- 8. BIRDS (ADD THIS SECTION) ---
+    // --- 9. BIRDS ---
     this.load.setPath("assets/sprites/spritesheets/enemies");
-    
-    // Option A: Single images (simplest - no animation)
-    this.load.image("bird_small", "bird_small.png");
+    this.load.spritesheet("bird_small", "bird_small.png", {
+      frameWidth: 51,
+      frameHeight: 31
+    });
+
+    // --- 10. CROCODILES ---
+    this.load.setPath("assets/sprites/spritesheets/enemies");
+    this.load.spritesheet("crocodile", "crocodile.png", {
+      frameWidth: 118,
+      frameHeight: 127
+    });
   }
 
   create() {
@@ -296,7 +307,7 @@ export class Level1 extends Phaser.Scene {
 
     this.birdsGroup = this.physics.add.group();
   
-    // --- BIRD COLLISIONS ------------------------------------------------------------------------------------------------
+    // --- BIRD COLLISIONS ---
     // Birds damage hero on overlap (only while flying)
     this.physics.add.overlap(
       this.birdsGroup,
@@ -306,20 +317,65 @@ export class Level1 extends Phaser.Scene {
       this
     );
     
-    // Birds collide with ground (for falling birds)
-    this.wallManager.addGroupCollider(this.birdsGroup);
+    // Birds collide with floor/ceiling/walls ONLY when falling
+    this.physics.add.collider(
+      this.birdsGroup,
+      this.wallManager.getFloorLayer(),
+      null,
+      (bird) => bird && bird.isFalling && !bird.isDead,
+      this
+    );
+    
+    if (this.wallManager.getCeilingLayer()) {
+      this.physics.add.collider(
+        this.birdsGroup,
+        this.wallManager.getCeilingLayer(),
+        null,
+        (bird) => bird && bird.isFalling && !bird.isDead,
+        this
+      );
+    }
+    
+    if (this.wallManager.getWallsLayer()) {
+      this.physics.add.collider(
+        this.birdsGroup,
+        this.wallManager.getWallsLayer(),
+        null,
+        (bird) => bird && bird.isFalling && !bird.isDead,
+        this
+      );
+    }
+    
+    // Birds vs platforms
+    this.physics.add.collider(
+      this.birdsGroup,
+      this.platformsStatic,
+      null,
+      (bird) => bird && bird.isFalling && !bird.isDead,
+      this
+    );
     
     this.physics.add.collider(
       this.birdsGroup,
-      this.platforms
+      this.platformsBreakable,
+      null,
+      (bird) => bird && bird.isFalling && !bird.isDead,
+      this
+    );
+    
+    // Bullets hit birds
+    this.physics.add.overlap(
+      this.bullets,
+      this.birdsGroup,
+      this.onWeaponHitsBird,
+      null,
+      this
     );
     
     // --- SPAWN INITIAL BIRDS (OPTIONAL) ---
-    // Spawn some test birds
     this.spawnBird('SMALL', 200, BIRD_SPAWN_HEIGHTS.HIGH, 1);
     
-    // --- BIRD SPAWNER TIMER (OPTIONAL) ---
-    // Spawn birds automatically every 8-15 seconds
+    // --- BIRD SPAWNER TIMER ---
     this.birdSpawnTimer = this.time.addEvent({
       delay: Phaser.Math.Between(8000, 15000),
       callback: this.spawnRandomBird,
@@ -327,17 +383,39 @@ export class Level1 extends Phaser.Scene {
       loop: true
     });
     
-    // --- DEBUG KEY (OPTIONAL) ---
-    // Press B to spawn a bird at hero position
+    // --- DEBUG KEY ---
     this.input.keyboard.on('keydown-B', () => {
       this.spawnBird('SMALL', this.hero.x, 200, 1);
       console.log('Debug: Bird spawned at hero position');
     });
+
+    // ===================== CROCODILES =====================
+    this.crocodilesGroup = this.physics.add.group();
+
+    // Crocodiles collide with floor and platforms
+    if (this.wallManager.getFloorLayer()) {
+      this.physics.add.collider(this.crocodilesGroup, this.wallManager.getFloorLayer());
+    }
+    this.physics.add.collider(this.crocodilesGroup, this.platformsStatic);
+    this.physics.add.collider(this.crocodilesGroup, this.platformsBreakable);
+
+    // Crocodiles hit hero
+    this.physics.add.overlap(
+      this.crocodilesGroup,
+      this.hero,
+      this.onPlayerHitsCrocodile,
+      null,
+      this
+    );
+
+    // DEBUG: Press V to spawn crocodile
+    this.input.keyboard.on('keydown-V', () => {
+      const groundY = 700;
+      this.spawnCrocodile(this.hero.x, groundY);
+      console.log('Debug: Spawned crocodile with V key');
+    });
   }
 
-    /**
-   * Spawn a bird of specified type----------------------------------------------------------------------------------------------
-   */
   spawnBird(type, x, y, direction = 1) {
     let bird;
     
@@ -359,9 +437,6 @@ export class Level1 extends Phaser.Scene {
     return bird;
   }
 
-    /**
-   * Spawn a random bird at random position
-   */
   spawnRandomBird() {
     // Limit max birds on screen
     const maxBirds = 5;
@@ -389,16 +464,39 @@ export class Level1 extends Phaser.Scene {
     this.spawnBird(type, x, y, direction);
   }
 
-  /**
-   * Called when bird overlaps with hero
-   */
   birdHitsHero(hero, bird) {
-    // Only damage hero if bird is still flying (not falling or dead)
     if (bird && bird.isFlying && !bird.isDead && hero && hero.active) {
       console.log('Bird hit hero!');
       hero.takeDamage(1);
     }
-  }//------------------------------------------------------------------------------------------------------------------------------
+  }
+
+  spawnCrocodile(x, y) {
+    const croc = new Crocodile(this, x, y);
+    this.crocodilesGroup.add(croc);
+    console.log(`Spawned crocodile at (${x}, ${y})`);
+    return croc;
+  }
+
+  onPlayerHitsCrocodile(hero, croc) {
+    if (!croc || !croc.active) return;
+
+    if (croc.state === 'STUNNED') {
+      console.log('Player hit stunned crocodile, launching!');
+      croc.launchFlying(hero.x);
+    }
+  }
+
+  onWeaponHitsCrocodile(weapon, croc) {
+    if (!weapon || !weapon.active) return;
+    if (!croc || !croc.active || croc.isDead) return;
+
+    console.log('Weapon hit crocodile!');
+
+    if (weapon.destroy) weapon.destroy();
+
+    if (croc.takeDamage) croc.takeDamage();
+  }
 
   createPlatformObjects() {
     // TODO: Implement new platform system with PlatformManager
@@ -527,6 +625,24 @@ export class Level1 extends Phaser.Scene {
             null,
             this
           );
+
+          // Harpoon hits birds
+          this.physics.overlap(
+            harpoon,
+            this.birdsGroup,
+            this.onWeaponHitsBird,
+            null,
+            this
+          );
+
+          // Harpoon hits crocodiles
+          this.physics.overlap(
+            harpoon,
+            this.crocodilesGroup,
+            this.onWeaponHitsCrocodile,
+            null,
+            this
+          );
         }
       });
     }
@@ -582,10 +698,37 @@ export class Level1 extends Phaser.Scene {
         null,
         this
       );
+
+      // Fixed harpoon hits birds
+      this.physics.overlap(
+        this.hero.activeFixedHarpoon,
+        this.birdsGroup,
+        this.onWeaponHitsBird,
+        null,
+        this
+      );
+
+      // Fixed harpoon hits crocodiles
+      this.physics.overlap(
+        this.hero.activeFixedHarpoon,
+        this.crocodilesGroup,
+        this.onWeaponHitsCrocodile,
+        null,
+        this
+      );
     }
 
     // Balas destruyendo pelotas
     this.physics.overlap(this.bullets, this.ballsGroup, this.onWeaponHitsBall, null, this);
+
+    // Balas vs Crocodiles
+    this.physics.overlap(
+      this.bullets,
+      this.crocodilesGroup,
+      this.onWeaponHitsCrocodile,
+      null,
+      this
+    );
 
     // Balas vs Plataformas Breakable
     this.physics.overlap(
@@ -608,65 +751,16 @@ export class Level1 extends Phaser.Scene {
         }
       });
     }
-
-    // --- HARPOON vs BIRDS (ADD THIS SECTION) ----------------------------------------------------------------------------
-    if (this.hero.activeHarpoons && this.hero.activeHarpoons.length > 0) {
-      this.hero.activeHarpoons = this.hero.activeHarpoons.filter(h => h && h.active);
-      
-      this.hero.activeHarpoons.forEach(harpoon => {
-        if (harpoon && harpoon.active) {
-          // ... your existing harpoon collision code ...
-          
-          // ADD: Harpoon hits birds
-          this.physics.overlap(
-            harpoon,
-            this.birdsGroup,
-            this.onWeaponHitsBird,
-            null,
-            this
-          );
-        }
-      });
-    }
-    
-    // --- FIXED HARPOON vs BIRDS (ADD THIS SECTION) ---
-    if (this.hero.activeFixedHarpoon && this.hero.activeFixedHarpoon.active) {
-      // ... your existing fixed harpoon collision code ...
-      
-      // ADD: Fixed harpoon hits birds
-      this.physics.overlap(
-        this.hero.activeFixedHarpoon,
-        this.birdsGroup,
-        this.onWeaponHitsBird,
-        null,
-        this
-      );
-    }
-    
-    // --- BULLETS vs BIRDS (ADD THIS SECTION) ---
-    // ADD: Bullets hit birds
-    this.physics.overlap(
-      this.bullets,
-      this.birdsGroup,
-      this.onWeaponHitsBird,
-      null,
-      this
-    );//--------------------------------------------------------------------------------------------------------------
   }
 
-    /**
-   * Called when any weapon hits a bird--------------------------------------------------------------------
-   */
   onWeaponHitsBird(weapon, bird) {
     if (weapon && weapon.active && bird && bird.active && !bird.isDead) {
       console.log('Weapon hit bird!');
       
-      // Destroy the weapon
       if (weapon.destroy) weapon.destroy();
       
-      // Damage the bird (makes it fall)
       if (bird.takeDamage) bird.takeDamage();
-    }//----------------------------------------------------------------------------------------------------------
+    }
   }
 
   onWeaponHitsPlatform(weapon, tile) {
