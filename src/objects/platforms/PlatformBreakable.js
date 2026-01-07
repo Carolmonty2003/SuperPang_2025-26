@@ -1,11 +1,10 @@
 import { PlatformBase } from './PlatformBase.js';
 
 /**
- * PlatformBreakable - Breakable platform with crystal glass effect
+ * PlatformBreakable - Breakable platform
  * 
  * Features:
  * - Breaks when hit by weapons
- * - Shimmering/glittering crystal effect
  * - Optional item drop on destruction
  */
 
@@ -21,11 +20,6 @@ export class PlatformBreakable extends PlatformBase {
     this.type = 'BREAKABLE';
     this.dropItem = config.dropItem || null;
     
-    // Glass shimmer effect properties
-    this.shimmerTime = 0;
-    this.shimmerSpeed = 2; // Speed of shimmer animation
-    this.shimmerIntensity = 0.3; // How much alpha varies
-    
     // Set collision properties on all tiles
     this.tiles.forEach(tile => {
       if (tile) {
@@ -35,35 +29,10 @@ export class PlatformBreakable extends PlatformBase {
         // Mark as breakable for collision detection
         tile.properties = tile.properties || {};
         tile.properties.breakable = true;
+        
+        // Apply fixed color tint
+        tile.tint = this.color;
       }
-    });
-    
-    // Start shimmer effect
-    this.startShimmerEffect();
-  }
-
-  /**
-   * Create subtle shimmering glass effect
-   */
-  startShimmerEffect() {
-    const baseColor = 0x00FFFF; // Cyan color fixed
-    
-    // Apply shimmer to all tiles simultaneously
-    this.tiles.forEach((tile) => {
-      if (!tile) return;
-      
-      // Set initial color
-      tile.tint = baseColor;
-      
-      // Simple tween from cyan to white
-      this.scene.tweens.add({
-        targets: tile,
-        tint: 0xFFFFFF, // White
-        duration: 2500,
-        yoyo: true,
-        repeat: -1,
-        ease: 'Sine.easeInOut'
-      });
     });
   }
 

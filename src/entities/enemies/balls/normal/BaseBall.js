@@ -182,6 +182,9 @@ export class BaseBall extends Phaser.Physics.Arcade.Sprite {
         }
       }
 
+      // Verificar si hay time freeze activo (heredar del padre)
+      const parentWasFrozen = this._isFrozen;
+
       // Darles un impulso inicial: una a la izquierda, otra a la derecha
       // Y un pequeño impulso hacia arriba (suave)
       const horizontalSpeed = Math.abs(ball1.speedX);
@@ -189,6 +192,23 @@ export class BaseBall extends Phaser.Physics.Arcade.Sprite {
 
       ball1.body.setVelocity(-horizontalSpeed, upwardImpulse);
       ball2.body.setVelocity(horizontalSpeed, upwardImpulse);
+      
+      // Si el padre estaba congelado, congelar las bolas nuevas también
+      if (parentWasFrozen) {
+        [ball1, ball2].forEach(ball => {
+          ball._frozenVelocity = {
+            x: ball.body.velocity.x,
+            y: ball.body.velocity.y
+          };
+          ball._frozenGravity = ball.body.gravity.y;
+          
+          ball.body.setVelocity(0, 0);
+          ball.body.setGravityY(0);
+          ball.body.setAllowGravity(false);
+          ball.setTint(0x00FFFF);
+          ball._isFrozen = true;
+        });
+      }
     };
 
     createBalls();

@@ -5,6 +5,7 @@ import { GAME_SIZE } from "../core/constants.js";
 import { Hud } from "../UI/HUD.js";
 import { Platform } from "../objects/Platform.js";
 import { PlatformManager } from "../objects/platforms/PlatformManager.js";
+import { WallManager } from "../objects/WallManager.js";
 import { HugeBall } from "../entities/enemies/balls/normal/HugeBall.js";
 import { TinyBall } from "../entities/enemies/balls/normal/TinyBall.js";
 import { HexBigBall } from "../entities/enemies/balls/hexagonal/HexBigBall.js";
@@ -29,11 +30,10 @@ export class Level1 extends Phaser.Scene {
       frameHeight: 192
     });
 
-    // --- 2. TILESETS (MUROS, PLATAFORMAS Y ESCALERAS) ---
+    // --- 2. TILESETS (MUROS Y PLATAFORMAS) ---
     this.load.setPath("assets/tiled/tilesets");
     this.load.image("tileset_muros_img", "tileset_muros.png");
     this.load.image("tileset_platform_img", "tileset_platform.png");
-    this.load.image("tileset_ladder_img", "tileset_ladder.png");
 
     // --- 3. TILEMAP ---
     this.load.setPath("assets/tiled/maps");
@@ -107,37 +107,36 @@ export class Level1 extends Phaser.Scene {
 
     // --- MAPA ---
     const map = this.make.tilemap({ key: "map_level_01" });
+    this.map = map; // Guardar referencia al mapa
 
     const tilesetMuros = map.addTilesetImage("tileset_muros", "tileset_muros_img");
     const tilesetPlatform = map.addTilesetImage("tileset_platforms", "tileset_platform_img");
-    const tilesetLadder = map.addTilesetImage("tileset_ladders", "tileset_ladder_img");
 
-    // console.log('Tilesets loaded:', { tilesetMuros, tilesetPlatform, tilesetLadder });
+    // --- WALL MANAGER (floor, ceiling) ---
+    this.wallManager = new WallManager(this, map, {
+      floorLayer: "layer_floor",
+      ceilingLayer: "layer_ceiling",
+      tilesetName: tilesetMuros
+    });
 
-    this.walls = map.createLayer("layer_walls", tilesetMuros, 0, 0);
     this.platformsStatic = map.createLayer("layer_platforms_undestructable", tilesetPlatform, 0, 0);
     this.platformsBreakable = map.createLayer("layer_platforms_destructable", tilesetPlatform, 0, 0);
-    this.ladders = map.createLayer("layer_ladders", tilesetLadder, 0, 0);
-
-    // console.log('Layers created:', {
-    //   walls: this.walls,
-    //   platformsStatic: this.platformsStatic,
-    //   platformsBreakable: this.platformsBreakable,
-    //   ladders: this.ladders
-    // });
 
     // Colisión tiles (IMPORTANTE: los tiles deben tener collision shape en Tiled)
-    this.walls.setCollisionByExclusion([-1]);
     
     if (this.platformsStatic) {
       this.platformsStatic.setCollisionByExclusion([-1, 0]);
+      // Asegurar que todos los tiles tengan colisión en todas las caras
+      this.platformsStatic.forEachTile(tile => {
+        if (tile && tile.index > 0) {
+          tile.setCollision(true, true, true, true);
+        }
+      });
     }
     
     if (this.platformsBreakable) {
       this.platformsBreakable.setCollisionByExclusion([-1, 0]);
     }
-    
-    // Ladders don't need collision for now
 
     // Initialize Platform Manager with breakable layer
     this.platformManager = new PlatformManager(this, map, this.platformsBreakable);
@@ -171,10 +170,6 @@ export class Level1 extends Phaser.Scene {
         null // No drop for now
       );
     });
-
-    // Initialize Ladder Manager
-    this.ladders = this.findLadderColumns(map, this.ladders);
-    console.log(`Found ${this.ladders.length} ladder columns`);
     
     // Static platforms keep collision but no special behavior needed
     
@@ -192,13 +187,6 @@ export class Level1 extends Phaser.Scene {
 
     // --- GRUPO DE PELOTAS ---
     this.ballsGroup = this.physics.add.group();
-
-    // Balas chocan con walls -> se destruyen
-    this.physics.add.collider(this.bullets, this.walls, (bullet) => {
-      // console.log('Bullet destroyed by WALL collision at', bullet.x, bullet.y);
-      if (bullet && bullet.active) bullet.destroy();
-    });
-
     // Balas rompen plataformas - TEMPORALMENTE DESACTIVADO hasta implementar nuevo sistema
     // this.physics.add.collider(
     //   this.bullets,
@@ -224,12 +212,15 @@ export class Level1 extends Phaser.Scene {
     this.hero.keyShoot = this.keyShoot;
     this.hero.keySpace = this.keyShoot;
 
-    this.physics.add.collider(this.hero, this.walls);
-    this.physics.add.collider(this.hero, this.platforms);
+    // --- COLISIONES HERO ---
+    this.wallManager.addHeroCollider(this.hero);
+    this.physics.add.collider(this.hero, this.platformsStatic);
+    this.physics.add.collider(this.hero, this.platformsBreakable);
 
     // --- COLISIONES BOLAS ---
-    this.physics.add.collider(this.ballsGroup, this.walls, this.bounceBall, null, this);
-    this.physics.add.collider(this.ballsGroup, this.platforms, this.bounceBall, null, this);
+    this.wallManager.addGroupCollider(this.ballsGroup, this.bounceBall, this);
+    this.physics.add.collider(this.ballsGroup, this.platformsStatic, this.bounceBall, null, this);
+    this.physics.add.collider(this.ballsGroup, this.platformsBreakable, this.bounceBall, null, this);
     // Overlap con el héroe - NO hay separación física automática, solo rebote manual
     this.physics.add.overlap(this.ballsGroup, this.hero, this.bounceOffHero, null, this);
 
@@ -255,8 +246,9 @@ export class Level1 extends Phaser.Scene {
 
     // --- COLISIONES ITEMS (sin rebote) ---
     // Los items colisionan con paredes y plataformas pero no rebotan
-    this.physics.add.collider(this.dropper.activeItems, this.walls);
-    this.physics.add.collider(this.dropper.activeItems, this.platforms);
+    this.wallManager.addGroupCollider(this.dropper.activeItems);
+    this.physics.add.collider(this.dropper.activeItems, this.platformsStatic);
+    this.physics.add.collider(this.dropper.activeItems, this.platformsBreakable);
 
     // ===== TEST MODE: DROPEAR ITEMS PARA PROBAR =====
     this.time.delayedCall(500, () => {
@@ -277,6 +269,17 @@ export class Level1 extends Phaser.Scene {
       this.dropper.dropFrom(null, 750, 600, { itemType: 'FRUITS', guaranteed: true });
     });
     // ===== FIN TEST MODE =====
+
+    // --- COLISIONES ARMAS CON PAREDES/TECHO ---
+    // Balas se destruyen al tocar paredes/techo
+    this.wallManager.addWeaponOverlap(this.bullets, (bullet) => {
+      if (bullet && bullet.active) {
+        bullet.destroy();
+      }
+    });
+
+    // Arpones normales se destruyen al tocar paredes/techo
+    // (Se maneja en el collider del grupo activeHarpoons dinámicamente en create)
 
     // --- HUD ---
     this.hud = new Hud(this, {
@@ -304,10 +307,7 @@ export class Level1 extends Phaser.Scene {
     );
     
     // Birds collide with ground (for falling birds)
-    this.physics.add.collider(
-      this.birdsGroup,
-      this.walls
-    );
+    this.wallManager.addGroupCollider(this.birdsGroup);
     
     this.physics.add.collider(
       this.birdsGroup,
@@ -384,7 +384,7 @@ export class Level1 extends Phaser.Scene {
     const direction = Phaser.Math.Between(0, 1) === 0 ? -1 : 1;
     
     // Spawn from appropriate side
-    const x = direction > 0 ? 0 : this.walls.width;
+    const x = direction > 0 ? 0 : this.map.widthInPixels;
     
     this.spawnBird(type, x, y, direction);
   }
@@ -416,7 +416,7 @@ export class Level1 extends Phaser.Scene {
   }
 
   createBall() {
-    const startX = this.walls.width / 2;
+    const startX = this.map.widthInPixels / 2;
     const startY = 200;
 
     // Elegir un color aleatorio para la bola inicial
@@ -462,18 +462,22 @@ export class Level1 extends Phaser.Scene {
     }
     
     if (ball.body.blocked.up || ball.body.touching.up) {
-      ball.body.setVelocityY(ball._constantBounceVel.y);
-      ball.y += 5;
+      // Cuando rebota desde ABAJO de una plataforma, usar velocidad MUY reducida
+      // para evitar que atraviese el suelo en el siguiente frame
+      const downwardVel = 150; // Velocidad fija baja para evitar atravesar suelo
+      ball.body.setVelocityY(downwardVel);
+      ball.y += 10; // Mayor separación de la plataforma
     }
     
+    // Rebote horizontal (izquierda/derecha)
     if (ball.body.blocked.left || ball.body.touching.left) {
       ball.body.setVelocityX(ball._constantBounceVel.x);
-      ball.x += 5;
+      ball.x += 10; // Mayor separación de la pared
     }
     
     if (ball.body.blocked.right || ball.body.touching.right) {
       ball.body.setVelocityX(-ball._constantBounceVel.x);
-      ball.x -= 5;
+      ball.x -= 10; // Mayor separación de la pared
     }
   }
 
@@ -484,60 +488,17 @@ export class Level1 extends Phaser.Scene {
     hero.takeDamage(1);
   }
 
-  findLadderColumns(map, ladderLayer) {
-    if (!ladderLayer) return [];
-    
-    const columns = [];
-    const processed = new Set();
-    const tileWidth = map.tileWidth;
-    const tileHeight = map.tileHeight;
-    
-    // Scan cada columna X
-    for (let x = 0; x < ladderLayer.width; x++) {
-      let inLadder = false;
-      let topY = null;
-      let bottomY = null;
-      
-      for (let y = 0; y < ladderLayer.height; y++) {
-        const tile = ladderLayer.getTileAt(x, y);
-        const hasTile = tile && tile.index > 0;
-        
-        if (hasTile && !inLadder) {
-          // Start of ladder column
-          inLadder = true;
-          topY = y;
-        } else if (!hasTile && inLadder) {
-          // End of ladder column
-          bottomY = y - 1;
-          
-          // Add complete column
-          columns.push({
-            x: x * tileWidth + tileWidth / 2,
-            top: topY * tileHeight,
-            bottom: (bottomY + 1) * tileHeight
-          });
-          
-          inLadder = false;
-          topY = null;
-          bottomY = null;
+  update() {
+    // Destruir pelotas fuera de la pantalla
+    this.ballsGroup.children.entries.forEach(ball => {
+      if (ball && ball.active) {
+        if (ball.y > this.cameras.main.height + 50 || ball.y < -50 || 
+            ball.x < -50 || ball.x > this.cameras.main.width + 50) {
+          ball.destroy();
         }
       }
-      
-      // If ladder goes to bottom of map
-      if (inLadder && topY !== null) {
-        bottomY = ladderLayer.height - 1;
-        columns.push({
-          x: x * tileWidth + tileWidth / 2,
-          top: topY * tileHeight,
-          bottom: (bottomY + 1) * tileHeight
-        });
-      }
-    }
-    
-    return columns;
-  }
+    });
 
-  update() {
     // Arpón rompiendo plataformas y pelotas
     if (this.hero.activeHarpoons && this.hero.activeHarpoons.length > 0) {
       // Clean up destroyed harpoons
@@ -546,22 +507,18 @@ export class Level1 extends Phaser.Scene {
       // Check collision for each active harpoon
       this.hero.activeHarpoons.forEach(harpoon => {
         if (harpoon && harpoon.active) {
-          // Colisión con plataformas estáticas (solo rebote)
+          // Colisión con plataformas breakable
           this.physics.overlap(
             harpoon,
-            this.platforms,
-            this.onWeaponHitsPlatform,
+            this.platformsBreakable,
+            (harpoon, tile) => {
+              if (tile && tile.properties && tile.properties.platform) {
+                this.platformManager.onWeaponHitPlatform(harpoon, tile);
+              }
+            },
             null,
             this
           );
-
-          // Colisión con plataformas breakable
-          if (this.platformManager && this.platformsBreakable) {
-            const tile = this.platformsBreakable.getTileAtWorldXY(harpoon.x, harpoon.y, true);
-            if (tile && tile.index > 0) {
-              this.platformManager.onWeaponHitPlatform(harpoon, tile);
-            }
-          }
 
           this.physics.overlap(
             harpoon,
@@ -576,13 +533,28 @@ export class Level1 extends Phaser.Scene {
 
     // Arpón Fijo rompiendo pelotas
     if (this.hero.activeFixedHarpoon && this.hero.activeFixedHarpoon.active) {
-      // Colisión con paredes para pegarse
+      // Colisión con techo para pegarse
+      if (this.wallManager.getCeilingLayer()) {
+        this.physics.collide(
+          this.hero.activeFixedHarpoon,
+          this.wallManager.getCeilingLayer(),
+          (harpoon, tile) => {
+            if (harpoon && harpoon.onWallCollision) {
+              harpoon.onWallCollision();
+            }
+          },
+          null,
+          this
+        );
+      }
+
+      // Colisión con plataformas estáticas para pegarse (igual que las paredes)
       this.physics.collide(
         this.hero.activeFixedHarpoon,
-        this.walls,
+        this.platformsStatic,
         (harpoon, tile) => {
           if (harpoon && harpoon.onWallCollision) {
-            harpoon.onWallCollision();
+            harpoon.onWallCollision(); // Se pega, NO destruye la plataforma
           }
         },
         null,
@@ -590,13 +562,17 @@ export class Level1 extends Phaser.Scene {
       );
 
       // Colisión con plataformas breakable
-      if (this.platformManager && this.platformsBreakable) {
-        const harpoon = this.hero.activeFixedHarpoon;
-        const tile = this.platformsBreakable.getTileAtWorldXY(harpoon.x, harpoon.y, true);
-        if (tile && tile.index > 0) {
-          this.platformManager.onWeaponHitPlatform(harpoon, tile);
-        }
-      }
+      this.physics.overlap(
+        this.hero.activeFixedHarpoon,
+        this.platformsBreakable,
+        (harpoon, tile) => {
+          if (tile && tile.properties && tile.properties.platform) {
+            this.platformManager.onWeaponHitPlatform(harpoon, tile);
+          }
+        },
+        null,
+        this
+      );
       
       // Colisión con bolas
       this.physics.overlap(
@@ -612,16 +588,17 @@ export class Level1 extends Phaser.Scene {
     this.physics.overlap(this.bullets, this.ballsGroup, this.onWeaponHitsBall, null, this);
 
     // Balas vs Plataformas Breakable
-    if (this.platformManager && this.bullets && this.bullets.children) {
-      this.bullets.children.entries.forEach(bullet => {
-        if (bullet && bullet.active) {
-          const tile = this.platformsBreakable?.getTileAtWorldXY(bullet.x, bullet.y, true);
-          if (tile && tile.index > 0) {
-            this.platformManager.onWeaponHitPlatform(bullet, tile);
-          }
+    this.physics.overlap(
+      this.bullets,
+      this.platformsBreakable,
+      (bullet, tile) => {
+        if (tile && tile.properties && tile.properties.platform) {
+          this.platformManager.onWeaponHitPlatform(bullet, tile);
         }
-      });
-    }
+      },
+      null,
+      this
+    );
 
     // CHECK ITEM PICKUPS
     if (this.dropper && this.dropper.activeItems) {

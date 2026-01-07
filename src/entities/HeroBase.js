@@ -40,19 +40,6 @@ export class HeroBase extends Phaser.Physics.Arcade.Sprite
 
         if (this.isDead || !this.body) return;
 
-        // Check for ladder climbing
-        if (this.checkLadderEntry) {
-            this.checkLadderEntry();
-        }
-
-        // Handle climbing separately
-        if (this.isClimbing) {
-            if (this.updateClimbing) {
-                this.updateClimbing();
-            }
-            return;
-        }
-
         const body = this.body;
 
         if (this.isShooting) {
