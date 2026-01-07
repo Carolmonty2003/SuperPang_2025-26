@@ -12,13 +12,6 @@ import { EVENTS } from '../../../core/events.js';
  * 5 up-left
  * 6 down-left
  * 7 left
- *
- * NOTAS:
- * - NO se reproduce animación. Solo se cambia el frame según dirección.
- * - Para evitar parpadeo (sobre todo al salir del loop), usa:
- *   - deadzone de velocidad mínima
- *   - update del frame cada X ms
- *   - confirmación por "ticks" (2 o 3)
  */
 export class BaseBird extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y, texture, speedX, scoreValue = 100) {
@@ -30,40 +23,30 @@ export class BaseBird extends Phaser.Physics.Arcade.Sprite {
     this.speedX = Math.abs(speedX);
     this.scoreValue = scoreValue;
 
-    // States
     this.isFlying = true;
     this.isFalling = false;
     this.isDead = false;
 
-    // Looping movement state
-    this.loopPhase = 'DESCENDING'; // DESCENDING, LOOPING, ASCENDING
+    this.loopPhase = 'DESCENDING';
 
-    // Movement parameters
     this.startX = x;
     this.startY = y;
     this.startTime = scene.time.now;
 
-    // Looping configuration
     this.loopCenterX = x + 400;
     this.loopCenterY = y + 300;
     this.loopRadius = 150;
 
-    // Full path duration (ms)
     this.totalDuration = 5000;
-
-    // Progress tracking (0..1)
     this.pathProgress = 0;
 
-    // Visual
     this.setScale(1.5, 1.5);
     this.setAngle(0);
     this.setFlipX(false);
 
-    // asegurar que no hay animación
     if (this.anims) this.anims.stop();
-    this.setFrame(2); // start: right
+    this.setFrame(2);
 
-    // Physics (custom movement)
     this.body.setAllowGravity(false);
     this.body.setGravityY(0);
     this.body.setBounce(0, 0);
@@ -73,7 +56,6 @@ export class BaseBird extends Phaser.Physics.Arcade.Sprite {
     this.body.setDrag(0, 0);
     this.body.setMaxVelocity(10000, 10000);
 
-    // Hitbox
     const hitboxWidth = this.width * 0.6;
     const hitboxHeight = this.height * 0.6;
     this.body.setSize(hitboxWidth, hitboxHeight);
@@ -82,24 +64,17 @@ export class BaseBird extends Phaser.Physics.Arcade.Sprite {
       (this.height - hitboxHeight) / 2
     );
 
-    // Disable collisions while flying
-    this.body.checkCollision.down = false;
-    this.body.checkCollision.up = false;
-    this.body.checkCollision.left = false;
-    this.body.checkCollision.right = false;
+    // (OJO) No desactivamos checkCollision aquí para no romper overlaps.
+    // En Level_01 filtramos colisión con tiles SOLO cuando cae.
 
     this.hasDroppedItem = false;
 
-    // Dirección estable
     this._dir = 2;
     this._pendingDir = null;
     this._pendingCount = 0;
     this._lastFrameUpdateTime = 0;
   }
 
-  // ==================================
-  // Helpers
-  // ==================================
   quadraticBezier(p0, p1, p2, t) {
     const oneMinusT = 1 - t;
     return (
@@ -113,17 +88,10 @@ export class BaseBird extends Phaser.Physics.Arcade.Sprite {
     return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
   }
 
-  // ==================================
-  // Dirección -> frame (estable)
-  // ==================================
   _computeDirFrame(vx, vy) {
-    // Ángulo -PI..PI (Phaser: +Y hacia abajo)
     let angle = Math.atan2(vy, vx);
-
-    // a 0..2PI
     if (angle < 0) angle += Math.PI * 2;
 
-    // 8 sectores centrados (+22.5°)
     const sector = Math.floor((angle + Math.PI / 8) / (Math.PI / 4)) % 8;
 
     // sector: 0=right,1=down-right,2=down,3=down-left,4=left,5=up-left,6=up,7=up-right
@@ -135,15 +103,12 @@ export class BaseBird extends Phaser.Physics.Arcade.Sprite {
   updateDirectionalFrame(vx, vy, isExiting = false) {
     const speed = Math.hypot(vx, vy);
 
-    // Deadzone: cuando va lento, el ángulo "baila"
     const MIN_SPEED = isExiting ? 140 : 70;
     if (speed < MIN_SPEED) return;
 
     const candidate = this._computeDirFrame(vx, vy);
-
     const now = this.scene?.time?.now ?? 0;
 
-    // Rate-limit: en salida del loop actualiza menos a menudo
     const FRAME_UPDATE_MS = isExiting ? 120 : 80;
     if (now - (this._lastFrameUpdateTime || 0) < FRAME_UPDATE_MS) return;
     this._lastFrameUpdateTime = now;
@@ -154,7 +119,6 @@ export class BaseBird extends Phaser.Physics.Arcade.Sprite {
       return;
     }
 
-    // Confirmación (evita flip-flop)
     const CONFIRM_TICKS = isExiting ? 3 : 2;
 
     if (this._pendingDir !== candidate) {
@@ -173,16 +137,12 @@ export class BaseBird extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
-  // ==================================
-  // Movimiento del pájaro
-  // ==================================
   updateLoopingMovement(delta) {
     if (!this.isFlying || this.isFalling) return;
     if (!this.scene || !this.scene.time) return;
 
     const now = this.scene.time.now;
     const elapsed = now - this.startTime;
-
     this.pathProgress = Math.min(elapsed / this.totalDuration, 1);
 
     const prevX = this.x;
@@ -190,7 +150,6 @@ export class BaseBird extends Phaser.Physics.Arcade.Sprite {
 
     let newX, newY;
 
-    // PHASE 1: DESCENDING (0-30%)
     if (this.pathProgress < 0.3) {
       this.loopPhase = 'DESCENDING';
       const phaseProgress = this.pathProgress / 0.3;
@@ -204,9 +163,7 @@ export class BaseBird extends Phaser.Physics.Arcade.Sprite {
 
       newX = this.quadraticBezier(this.startX, controlX, entryX, eased);
       newY = this.quadraticBezier(this.startY, controlY, entryY, eased);
-    }
-    // PHASE 2: LOOPING (30-70%)
-    else if (this.pathProgress < 0.7) {
+    } else if (this.pathProgress < 0.7) {
       this.loopPhase = 'LOOPING';
       const phaseProgress = (this.pathProgress - 0.3) / 0.4;
 
@@ -214,9 +171,7 @@ export class BaseBird extends Phaser.Physics.Arcade.Sprite {
 
       newX = this.loopCenterX + Math.cos(angle) * this.loopRadius;
       newY = this.loopCenterY + Math.sin(angle) * this.loopRadius;
-    }
-    // PHASE 3: ASCENDING (70-100%)
-    else {
+    } else {
       this.loopPhase = 'ASCENDING';
       const phaseProgress = (this.pathProgress - 0.7) / 0.3;
       const eased = this.easeInOutQuad(phaseProgress);
@@ -234,19 +189,17 @@ export class BaseBird extends Phaser.Physics.Arcade.Sprite {
       newY = this.quadraticBezier(loopExitY, controlY, exitY, eased);
     }
 
-    // delta seguro
-    const safeDelta = Number.isFinite(delta) ? delta : 16.666; // ms
-    const dt = Math.max(1, safeDelta) / 1000; // s
+    const safeDelta = Number.isFinite(delta) ? delta : 16.666;
+    const dt = Math.max(1, safeDelta) / 1000;
 
     const dx = newX - prevX;
     const dy = newY - prevY;
 
-    this.setPosition(newX, newY);
+    // ✅ CLAVE: reset del body para que overlaps no fallen
+    this.body.reset(newX, newY);
 
     const vx = dx / dt;
     const vy = dy / dt;
-
-    // evitar NaN
     if (!Number.isFinite(vx) || !Number.isFinite(vy)) return;
 
     this.body.setVelocity(vx, vy);
@@ -291,9 +244,6 @@ export class BaseBird extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
-  // ==================================
-  // Daño / caída
-  // ==================================
   takeDamage() {
     if (this.isDead || this.isFalling) return;
 
@@ -318,7 +268,7 @@ export class BaseBird extends Phaser.Physics.Arcade.Sprite {
 
     this.body.setVelocityX(0);
     this.setTint(0xff0000);
-    this.setFrame(0); // down mientras cae
+    this.setFrame(0);
   }
 
   showFloatingScore() {
