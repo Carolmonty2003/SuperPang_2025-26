@@ -14,8 +14,8 @@ export function buildConfig({ scenes = [] } = {})
         width: GAME_SIZE.WIDTH,
         height: GAME_SIZE.HEIGHT,
         scale: {
-            // Usar NONE hace que el canvas tenga exactamente WIDTHxHEIGHT (no escalado automático)
-            mode: Phaser.Scale.NONE,
+            // En lugar de NONE, usamos FIT
+            mode: Phaser.Scale.FIT,
             autoCenter: Phaser.Scale.CENTER_BOTH,
             width: GAME_SIZE.WIDTH,
             height: GAME_SIZE.HEIGHT
@@ -27,6 +27,11 @@ export function buildConfig({ scenes = [] } = {})
                 gravity: { y: PHYSICS.GRAVITY },
                 debug: PHYSICS.DEBUG
             }
+        },
+        fps:
+        {
+        target:60,
+        forceSetTimeOut:true
         },
         scene: scenes
     };

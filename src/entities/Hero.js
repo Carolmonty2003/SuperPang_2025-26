@@ -1,15 +1,17 @@
-/**
- * Hero clásico de Pang. Dispara arpones o balas según el arma equipada.
- */
 import { HeroBase } from './HeroBase.js';
-import { Harpoon } from './Harpoon.js';
-import { Bullet } from './Bullet.js';
+import { Harpoon } from './weapons/Harpoon.js';
+import { FixedHarpoon } from './weapons/FixedHarpoon.js';
+import { Bullet } from './weapons/Bullet.js';
 import { EVENTS } from '../core/events.js';
+import { WEAPON_LEVELS, MAX_WEAPON_LEVEL } from './items/powerups/PowerUpWeapon.js';
+import { SHIELD_CONFIG } from './items/powerups/PowerUpShield.js';
+import { SPEED_CONFIG } from './items/powerups/PowerUpSpeed.js';
 
-// "Enum" de tipos de arma del héroe
+// tipos de arma
 export const HERO_WEAPON = {
     HARPOON: 1,
     GUN: 2,
+    FIXED_HARPOON: 3,
 };
 
 export class Hero extends HeroBase 
@@ -18,73 +20,90 @@ export class Hero extends HeroBase
     {
         super(scene, x, y, texture);
 
-        // Solo un arpón activo a la vez (modo HARPOON)
-        this.activeHarpoon = null;
-
-        // Flag para bloquear movimiento al disparar
+        this.activeHarpoons = []; // Array to track multiple harpoons
+        this.maxHarpoonsActive = 1; // Default: 1 harpoon at a time
+        this.activeFixedHarpoon = null;
         this.isShooting = false;
 
-        // Tipo de arma actual (1 = arpón, 2 = balas)
         this.weaponType = HERO_WEAPON.HARPOON;
-        // this.weaponType = HERO_WEAPON.GUN; // ← pon esto para empezar con la metralleta
 
-        // Crear animaciones del héroe
+        // Sistema de vida e invencibilidad
+        this.lives = 3; // Usar 'lives' para compatibilidad con HUD
+        this.maxLives = 5; // Maximum lives the hero can have
+        this.isInvulnerable = false;
+
+        // Items system: score tracking
+        this.score = 0;
+
+        // Items system: power-up states
+        this.hasShield = false;
+        this.shieldTimer = null;
+        this.speedBuffTimer = null;
+        this.originalSpeed = null;
+        this.weaponLevel = 0; // Start at base weapon level
+        this.weaponStats = WEAPON_LEVELS[0]; // Initialize with base weapon stats
+
         this.createAnimations();
 
-        // --- TECLAS PARA CAMBIAR DE ARMA (1 y 2) ---
+        // cambio de arma
         this.key1 = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
         this.key2 = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
+        this.key3 = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.THREE);
+        this.key4 = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.FOUR);
 
-        this.key1.on('down', () => {
-            this.setWeapon(HERO_WEAPON.HARPOON);
-            // console.log('Arma: HARPOON');
+        this.key1.on('down', () => this.setWeapon(HERO_WEAPON.HARPOON));
+        this.key2.on('down', () => this.setWeapon(HERO_WEAPON.GUN));
+        this.key3.on('down', () => this.setWeapon(HERO_WEAPON.FIXED_HARPOON));
+        this.key4.on('down', () => {
+            // Toggle double harpoon upgrade
+            const newState = this.maxHarpoonsActive === 1;
+            this.setDoubleHarpoon(newState);
+            const status = newState ? 'ON (2 max)' : 'OFF (1 max)';
+            this.scene.game.events.emit('UI_WEAPON_CHANGE', `DOUBLE HARPOON: ${status}`);
         });
 
-        this.key2.on('down', () => {
-            this.setWeapon(HERO_WEAPON.GUN);
-            // console.log('Arma: GUN');
-        });
-
-        // Empezar en idle
         this.play('idle');
+
+        // Notificar al HUD que el héroe está listo
+        this.scene.game.events.emit(EVENTS.hero.READY, this);
     }
 
-    /**
-     * Permite cambiar el arma desde fuera:
-     *   hero.setWeapon(HERO_WEAPON.GUN);
-     */
     setWeapon(weaponType) {
         this.weaponType = weaponType;
+
+        let modeText;
+        if (weaponType === HERO_WEAPON.GUN) {
+            modeText = 'MACHINE GUN';
+        } else if (weaponType === HERO_WEAPON.FIXED_HARPOON) {
+            modeText = 'FIXED HARPOON';
+        } else {
+            modeText = 'HARPOON';
+        }
+
+        this.scene.game.events.emit('UI_WEAPON_CHANGE', modeText);
     }
 
-    /**
-     * Crea las animaciones del héroe.
-     * Solo se crean si no existen, para evitar duplicarlas entre escenas.
-     */
     createAnimations() {
         const anims = this.scene.anims;
 
-        // IDLE: 1 SOLO FRAME, SIN ANIMAR
         if (!anims.exists('idle')) {
             anims.create({
                 key: 'idle',
-                frames: [{ key: 'player_walk', frame: 0 }], // solo frame 0
+                frames: [{ key: 'player_walk', frame: 0 }],
                 frameRate: 1,
                 repeat: -1,
             });
         }
 
-        // RUN: animación de caminar/correr
         if (!anims.exists('run')) {
             anims.create({
                 key: 'run',
-                frames: anims.generateFrameNumbers('player_walk', { start: 0, end: 3 }),
+                frames: anims.generateFrameNumbers('player_walk', { start: 0, end: 2 }),
                 frameRate: 12,
                 repeat: -1,
             });
         }
 
-        // SHOOT: disparo una vez
         if (!anims.exists('shoot')) {
             anims.create({
                 key: 'shoot',
@@ -95,76 +114,420 @@ export class Hero extends HeroBase
         }
     }
 
-    /**
-     * Lógica de disparo.
-     * Este método lo llama HeroBase CUANDO se pulsa SPACE (JustDown).
-     */
-    handleShootingInput() 
-    {
-        // Si ya está en anim de disparo, no permitir otro
-        if (this.isShooting) {
-            return;
-        }
+    handleShootingInput() {
+        if (this.isShooting) return;
 
-        // Si el arma es arpón: solo permitir un arpón activo
         if (this.weaponType === HERO_WEAPON.HARPOON) {
-            if (this.activeHarpoon && this.activeHarpoon.active) {
-                return;
-            }
+            // Clean up destroyed harpoons from array
+            this.activeHarpoons = this.activeHarpoons.filter(h => h && h.active);
+            // Check if we've reached the cap
+            if (this.activeHarpoons.length >= this.maxHarpoonsActive) return;
         }
 
-        // A partir de aquí, vamos a disparar
+        if (this.weaponType === HERO_WEAPON.FIXED_HARPOON) {
+            if (this.activeFixedHarpoon && this.activeFixedHarpoon.active) return;
+        }
+
         this.isShooting = true;
-
-        // Bloquear movimiento mientras disparamos
         this.setVelocityX(0);
-
-        // Reproducir animación de disparo UNA VEZ
         this.play('shoot', true);
 
-        // Ejecutar el disparo según el arma equipada
         if (this.weaponType === HERO_WEAPON.HARPOON) {
             this.shootHarpoon();
-        } else if (this.weaponType === HERO_WEAPON.GUN) {
+        } else if (this.weaponType === HERO_WEAPON.FIXED_HARPOON) {
+            this.shootFixedHarpoon();
+        } else {
             this.shootGunFan();
         }
 
-        // Cuando termine la animación de "shoot", volvemos a dejarle moverse
         this.once(Phaser.Animations.Events.ANIMATION_COMPLETE, (anim) => {
-            if (anim.key === 'shoot') {
-                this.isShooting = false;
-                // El HeroBase en el siguiente frame pondrá idle/run según se mueva
-            }
+            if (anim.key === 'shoot') this.isShooting = false;
         });
     }
 
-    /**
-     * Disparo clásico de arpón (un solo arpón vertical).
-     */
     shootHarpoon() {
-        // Crear el arpón en la posición actual del héroe
-        this.activeHarpoon = new Harpoon(this.scene, this.x, this.y);
-
-        // Evento por si quieres sonidos, efectos, etc.
+        // Calculate horizontal offset to prevent visual overlap when multiple harpoons exist
+        let offsetX = 0;
+        if (this.activeHarpoons.length > 0 && this.maxHarpoonsActive > 1) {
+            // Alternate left/right offset: first harpoon left, second right
+            offsetX = (this.activeHarpoons.length % 2 === 0) ? -15 : 15;
+        }
+        
+        // Use 'arpon' sprite when double harpoon is enabled, otherwise use default 'arponFijo'
+        const texture = this.maxHarpoonsActive > 1 ? 'arpon' : 'arponFijo';
+        
+        const harpoon = new Harpoon(this.scene, this.x + offsetX, this.y, texture);
+        this.activeHarpoons.push(harpoon);
         this.scene.game.events.emit(EVENTS.hero.SHOOT);
     }
 
-    /**
-     * Disparo de balas en abanico (metralleta).
-     * Crea varias balas con distintos ángulos.
-     */
+    shootFixedHarpoon() {
+        this.activeFixedHarpoon = new FixedHarpoon(this.scene, this.x, this.y);
+        this.scene.game.events.emit(EVENTS.hero.SHOOT);
+    }
+
     shootGunFan() {
-        // Ángulos en grados respecto al eje X:
-        // -90 es hacia arriba. Abrimos un abanico alrededor de -90.
-        const angles = [-60, -75, -90, -105, -120];
+        const angles = [-80, -85, -90, -95, -100];
 
         angles.forEach(angle => {
             const bullet = new Bullet(this.scene, this.x, this.y - 40, 'bullet');
-            if (typeof bullet.fire === 'function') {
-                bullet.fire(angle);
+
+            if (this.scene.bullets) {
+                this.scene.bullets.add(bullet);
             }
+
+            bullet.setDepth(10);
+
+            bullet.fire(angle);
         });
 
         this.scene.game.events.emit(EVENTS.hero.SHOOT);
+    }
+
+    takeDamage(amount = 1) {
+        // Si ya es invulnerable, no recibe daño
+        if (this.isInvulnerable) return;
+
+        // SHIELD SYSTEM: Si tiene escudo, absorbe el golpe
+        if (this.hasShield) {
+            console.log('Shield blocked damage!');
+            
+            // El escudo se rompe
+            this.hasShield = false;
+            
+            // Cancelar timer del escudo si existe
+            if (this.shieldTimer) {
+                this.shieldTimer.destroy();
+                this.shieldTimer = null;
+            }
+            
+            // Detener pulsación del escudo
+            if (this._shieldPulse) {
+                this._shieldPulse.stop();
+                delete this._shieldPulse;
+            }
+            
+            // Mostrar efecto visual de escudo roto
+            this.showShieldBreakEffect();
+            
+            // Dar 1 segundo de invulnerabilidad después de romper el escudo
+            this.isInvulnerable = true;
+            
+            // Parpadeo amarillo (escudo roto)
+            const invulnDuration = SHIELD_CONFIG.INVULN_AFTER_BREAK || 1000;
+            const blinkInterval = 100;
+            let blinkCount = 0;
+            const maxBlinks = invulnDuration / blinkInterval;
+            
+            const blinkTimer = this.scene.time.addEvent({
+                delay: blinkInterval,
+                callback: () => {
+                    blinkCount++;
+                    // Alternar entre amarillo y transparente
+                    if (blinkCount % 2 === 0) {
+                        this.setTint(0xFFFF00);
+                        this.setAlpha(0.5);
+                    } else {
+                        this.clearTint();
+                        this.setAlpha(1);
+                    }
+                    
+                    if (blinkCount >= maxBlinks) {
+                        this.clearTint();
+                        this.setAlpha(1);
+                        this.isInvulnerable = false;
+                        blinkTimer.destroy();
+                    }
+                },
+                loop: true
+            });
+            
+            // NO pierde vida, el escudo lo protegió
+            return;
+        }
+
+        // NO SHIELD: Recibe daño normal
+        this.lives -= amount;
+        console.log(`Hero took ${amount} damage! Lives: ${this.lives}`);
+
+        // Notificar al HUD de la pérdida de vida
+        this.scene.game.events.emit(EVENTS.hero.DAMAGED, this.lives);
+
+        // Activar invencibilidad
+        this.isInvulnerable = true;
+
+        // Parpadeo rojo durante 2 segundos
+        const invulnerabilityDuration = 2000;
+        const blinkInterval = 150;
+        let blinkCount = 0;
+        const maxBlinks = invulnerabilityDuration / blinkInterval;
+
+        const blinkTimer = this.scene.time.addEvent({
+            delay: blinkInterval,
+            callback: () => {
+                blinkCount++;
+                // Alternar entre rojo y normal
+                if (blinkCount % 2 === 0) {
+                    this.setTint(0xff0000); // Rojo
+                } else {
+                    this.clearTint(); // Normal
+                }
+
+                // Terminar el parpadeo
+                if (blinkCount >= maxBlinks) {
+                    this.clearTint();
+                    this.isInvulnerable = false;
+                    blinkTimer.destroy();
+                }
+            },
+            loop: true
+        });
+
+        // Verificar muerte
+        if (this.lives <= 0) {
+            this.die();
+        }
+    }
+
+    showShieldBreakEffect() {
+        // Efecto visual de escudo rompiéndose
+        const breakText = this.scene.add.text(
+            this.x,
+            this.y - 50,
+            'SHIELD BREAK!',
+            {
+                fontFamily: 'Arial',
+                fontSize: '18px',
+                color: '#FFFF00',
+                stroke: '#FF6600',
+                strokeThickness: 3
+            }
+        ).setOrigin(0.5);
+        
+        breakText.setDepth(100);
+        
+        this.scene.tweens.add({
+            targets: breakText,
+            y: breakText.y - 40,
+            alpha: 0,
+            duration: 1000,
+            ease: 'Cubic.easeOut',
+            onComplete: () => breakText.destroy()
+        });
+        
+        // Partículas de escudo roto (círculos cyan)
+        for (let i = 0; i < 8; i++) {
+            const angle = (Math.PI * 2 / 8) * i;
+            const particle = this.scene.add.circle(
+                this.x,
+                this.y - 30,
+                4,
+                0x00FFFF,
+                1
+            );
+            particle.setDepth(99);
+            
+            const targetX = this.x + Math.cos(angle) * 60;
+            const targetY = this.y - 30 + Math.sin(angle) * 60;
+            
+            this.scene.tweens.add({
+                targets: particle,
+                x: targetX,
+                y: targetY,
+                alpha: 0,
+                duration: 600,
+                ease: 'Cubic.easeOut',
+                onComplete: () => particle.destroy()
+            });
+        }
+    }
+
+    die() {
+        console.log('Hero died! Game Over!');
+        // Notificar muerte al sistema
+        this.scene.game.events.emit(EVENTS.hero.DIED);
+        this.scene.game.events.emit(EVENTS.game.GAME_OVER);
+        // Aquí puedes agregar lógica de muerte: animación, game over screen, etc.
+    }
+
+    /**
+     * Enable or disable Double Harpoon upgrade
+     * @param {boolean} enabled - True to enable double harpoon (2 max), false for normal (1 max)
+     */
+    setDoubleHarpoon(enabled) {
+        this.maxHarpoonsActive = enabled ? 2 : 1;
+        const status = enabled ? 'ENABLED' : 'DISABLED';
+        console.log(`Double Harpoon ${status} - Max harpoons: ${this.maxHarpoonsActive}`);
+    }
+
+    // ============================================================
+    // ITEMS SYSTEM INTEGRATION METHODS
+    // ============================================================
+
+    /**
+     * Add score to the hero/game
+     * @param {number} points - Points to add
+     */
+    addScore(points) {
+        this.score += points;
+        console.log(`Score +${points} = ${this.score}`);
+        
+        // Emit score change event for HUD
+        this.scene.game.events.emit(EVENTS.game.SCORE_CHANGE, points);
+    }
+
+    /**
+     * Add lives to the hero
+     * @param {number} amount - Number of lives to add
+     */
+    addLife(amount = 1) {
+        const oldLives = this.lives;
+        this.lives = Math.min(this.lives + amount, this.maxLives);
+        const actualGain = this.lives - oldLives;
+        
+        if (actualGain > 0) {
+            console.log(`Lives +${actualGain} = ${this.lives}/${this.maxLives}`);
+            
+            // Emit life gained event for HUD
+            this.scene.game.events.emit(EVENTS.hero.LIFE_GAINED, this.lives);
+        } else {
+            console.log(`Lives already at maximum (${this.maxLives})`);
+        }
+    }
+
+    /**
+     * Activate shield protection
+     * @param {number} duration - Duration in milliseconds
+     */
+    setShield(duration = SHIELD_CONFIG.DURATION) {
+        // Clear existing shield timer if any (reset duration)
+        if (this.shieldTimer) {
+            this.shieldTimer.destroy();
+            console.log('Shield refreshed (timer reset)');
+        } else {
+            console.log('Shield activated');
+        }
+        
+        // Enable shield
+        this.hasShield = true;
+        this.isInvulnerable = true;
+        
+        // Visual feedback: cyan glow
+        this.setTint(SHIELD_CONFIG.TINT_COLOR);
+        
+        // Add pulsing effect
+        const shieldPulse = this.scene.tweens.add({
+            targets: this,
+            alpha: { from: 1, to: 0.7 },
+            duration: SHIELD_CONFIG.BLINK_INTERVAL,
+            yoyo: true,
+            repeat: -1
+        });
+        
+        // Set timer to remove shield
+        this.shieldTimer = this.scene.time.delayedCall(duration, () => {
+            this.hasShield = false;
+            this.isInvulnerable = false;
+            this.clearTint();
+            this.setAlpha(1);
+            shieldPulse.stop();
+            this.shieldTimer = null;
+            
+            console.log('Shield expired');
+        });
+    }
+
+    /**
+     * Apply speed buff to hero
+     * @param {number} multiplier - Speed multiplier (e.g., 1.5 for 50% faster)
+     * @param {number} duration - Duration in milliseconds
+     */
+    applySpeedBuff(multiplier = SPEED_CONFIG.MULTIPLIER, duration = SPEED_CONFIG.DURATION) {
+        // Store original speed if not already buffed
+        if (!this.originalSpeed) {
+            this.originalSpeed = this.speed || 250; // Fallback to default
+        }
+        
+        // Clear existing speed timer if any (reset duration, not stack)
+        if (this.speedBuffTimer) {
+            this.speedBuffTimer.destroy();
+            console.log('Speed buff refreshed (timer reset)');
+        } else {
+            console.log('Speed buff applied');
+        }
+        
+        // Apply speed multiplier
+        const newSpeed = this.originalSpeed * multiplier;
+        this.speed = newSpeed;
+        this.moveSpeed = newSpeed; // Some implementations use moveSpeed
+        
+        // Visual feedback: yellow tint
+        this.setTint(SPEED_CONFIG.VISUAL_TINT);
+        
+        // Set timer to revert speed
+        this.speedBuffTimer = this.scene.time.delayedCall(duration, () => {
+            // Revert to original speed
+            this.speed = this.originalSpeed;
+            this.moveSpeed = this.originalSpeed;
+            this.clearTint();
+            this.speedBuffTimer = null;
+            this.originalSpeed = null;
+            
+            console.log('Speed buff expired');
+        });
+    }
+
+    /**
+     * Upgrade the hero's weapon
+     * Increases weapon level and updates weapon stats
+     */
+    upgradeWeapon() {
+        // Increase weapon level (cap at MAX)
+        if (this.weaponLevel < MAX_WEAPON_LEVEL) {
+            this.weaponLevel++;
+        }
+        
+        // Update weapon stats
+        this.weaponStats = WEAPON_LEVELS[this.weaponLevel];
+        
+        console.log(`Weapon upgraded to Level ${this.weaponLevel}: ${this.weaponStats.name}`);
+        console.log(`Stats: ${this.weaponStats.shots} shots, ${this.weaponStats.speedMultiplier}x speed, ${this.weaponStats.spread}° spread`);
+        
+        // Visual feedback
+        this.setTint(0xFF6600);
+        this.scene.time.delayedCall(500, () => {
+            this.clearTint();
+        });
+        
+        // Emit weapon upgrade event
+        this.scene.game.events.emit(EVENTS.hero.WEAPON_UPGRADED, this.weaponLevel);
+    }
+
+    /**
+     * Reset power-ups (on death or level transition)
+     */
+    resetPowerUps() {
+        // Clear timers
+        if (this.shieldTimer) {
+            this.shieldTimer.destroy();
+            this.shieldTimer = null;
+        }
+        if (this.speedBuffTimer) {
+            this.speedBuffTimer.destroy();
+            this.speedBuffTimer = null;
+        }
+        
+        // Reset states
+        this.hasShield = false;
+        this.isInvulnerable = false;
+        this.originalSpeed = null;
+        this.weaponLevel = 0;
+        this.weaponStats = WEAPON_LEVELS[0];
+        
+        // Clear visual effects
+        this.clearTint();
+        this.setAlpha(1);
+        
+        console.log('Power-ups reset');
     }
 }

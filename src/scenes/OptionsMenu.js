@@ -19,7 +19,7 @@ export class OptionsMenu extends Phaser.Scene {
     const centerX = cam.centerX;
     const centerY = cam.centerY;
 
-    cam.setBackgroundColor("#00111f");
+    cam.setBackgroundColor("#000090");
 
     // ---------- TÍTULO ----------
     this.add
@@ -117,7 +117,7 @@ export class OptionsMenu extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     backText.on("pointerover", () =>
-      backText.setStyle({ color: "#f39c12" })
+      backText.setStyle({ color: "#000000ff" })
     );
     backText.on("pointerout", () =>
       backText.setStyle({ color: "#ffffff" })

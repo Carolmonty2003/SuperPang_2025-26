@@ -7,7 +7,7 @@
 
 export const GAME_SIZE = {
     WIDTH: 1536,    
-    HEIGHT: 832
+    HEIGHT: 950
 };
 
 export const PHYSICS = {
@@ -30,8 +30,8 @@ export const WEAPON = {
 };
 
 export const BALLS = {
-    BALL_BOUNCE: 1, // Rebote perfecto 
-    BALL_GRAVITY: 400, // Gravedad específica para bolas (flotan más)
+    BALL_BOUNCE: 1.0, // Rebote perfecto (100% de energía conservada)
+    BALL_GRAVITY: 600, // Gravedad específica para bolas
     SPEED_X: 150
 };
 
@@ -54,3 +54,50 @@ export const ENEMY = {
         MAX_SIZE: 4
     }
 };
+
+// Constantes para el sistema de items y drops
+export const ITEMS = {
+    // Drop configuration
+    DROP_CHANCE: 0.4, // 40% base drop chance
+    MAX_ITEMS_ON_SCREEN: 8,
+    
+    // Item time-to-live (TTL) in milliseconds
+    TTL: {
+        SCORE_BONUS: 8000,
+        POWER_UP_LIFE: 10000,
+        POWER_UP_SHIELD: 8000,
+        POWER_UP_SPEED: 9000,
+        POWER_UP_WEAPON: 7000,
+        WEAPON_TEMP_DOUBLE: 7000,
+        WEAPON_TEMP_MACHINE: 7000,
+        WEAPON_TEMP_FIXED: 7000,
+        BOMB: 9000,
+        TIME_FREEZE: 8000,
+        TIME_SLOW: 8000
+    },
+    
+    // Score bonus values
+    SCORE: {
+        SMALL: 100,
+        MEDIUM: 250,
+        LARGE: 500,
+        SPECIAL: 1000
+    },
+    
+    // Power-up durations
+    DURATION: {
+        SHIELD: 30000,      // 30 seconds shield duration
+        SHIELD_INVULN_AFTER_BREAK: 1000, // 1 second invuln after shield breaks
+        SPEED_BOOST: 8000,  // 8 seconds speed boost
+        WEAPON_TEMP: 15000, // 15 seconds temporary weapon
+        TIME_FREEZE: 10000, // 10 seconds time freeze
+        TIME_SLOW: 12000    // 12 seconds slow motion
+    },
+    
+    // Power-up multipliers
+    MULTIPLIER: {
+        SPEED: 1.5, // 50% speed increase
+        SLOW_MOTION: 0.4 // 40% speed (60% slower)
+    }
+};
+
