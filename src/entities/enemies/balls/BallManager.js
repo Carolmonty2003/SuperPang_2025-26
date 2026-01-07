@@ -35,7 +35,7 @@ export class BallManager {
 
     layer.objects.forEach(obj => {
       console.log('[BallManager] Processing object:', obj);
-      // Try both 'type' and 'type' property, fallback to obj.name
+        // Detecta el tipo de bola
       let type = null;
       if (obj.properties) {
         type = obj.properties.find(p => p.name === 'type')?.value;
@@ -47,10 +47,8 @@ export class BallManager {
         return;
       }
 
-      // Try both 'dirX' and 'direction x' for compatibility
       let dirX = this._numProp(obj, 'dirX');
       if (dirX === undefined || dirX === null) dirX = this._numProp(obj, 'direction x');
-      // Try both 'initialSpeed' and 'velocity'
       let speed = this._numProp(obj, 'initialSpeed');
       if (speed === undefined || speed === null) speed = this._numProp(obj, 'velocity');
       const color = this._parseColor(this._getProp(obj, 'color'));
@@ -81,7 +79,7 @@ export class BallManager {
     const finalColor = color ?? this._randomBallColor();
 
     // Typo correction for Tiled mistakes
-    let safeType = type?.toLowerCase();
+      let safeType = type?.toLowerCase();
     if (safeType === 'n_tinty') safeType = 'n_tiny';
 
     let ball;
@@ -100,7 +98,7 @@ export class BallManager {
       default: ball = null;
     }
     // Emit BALL_CREATED event
-    if (ball && this.scene && this.scene.game && this.scene.game.events) {
+      if (ball && this.scene && this.scene.game && this.scene.game.events) {
       this.scene.game.events.emit(EVENTS.enemy.BALL_CREATED, ball);
     }
     return ball;

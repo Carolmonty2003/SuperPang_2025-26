@@ -3,10 +3,7 @@ import { ITEMS } from '../../../core/constants.js';
 import { HERO_WEAPON } from '../../Hero.js';
 
 /**
- * WeaponTempMachine - Temporary Machine Gun Weapon
- * 
- * Temporarily changes hero weapon to machine gun mode.
- * Lasts for 10-15 seconds, then reverts to normal harpoon.
+ * Ametralladora temporal
  */
 
 export class WeaponTempMachine extends BaseItem {

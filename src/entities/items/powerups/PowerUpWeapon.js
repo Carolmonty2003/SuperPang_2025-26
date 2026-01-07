@@ -1,20 +1,7 @@
 import { BaseItem } from '../BaseItem.js';
 
 /**
- * PowerUpWeapon - Weapon Upgrade Item
- * 
- * Upgrades the player's weapon using a level-based system.
- * 
- * WEAPON LEVEL SYSTEM:
- * Level 0 (Base): Single harpoon, normal speed
- * Level 1: Faster harpoon speed (+30%)
- * Level 2: Dual harpoons (2 shots simultaneously)
- * Level 3: Triple harpoons (3 shots in a fan pattern)
- * Level 4: Quad harpoons + increased speed + longer reach
- * Level 5 (MAX): Rapid-fire mode with 5-shot spread
- * 
- * Each power-up increases the weapon level by 1 (up to MAX).
- * Weapon level persists across the level but resets on death.
+ * Mejora de arma por niveles
  */
 
 export const WEAPON_LEVELS = {

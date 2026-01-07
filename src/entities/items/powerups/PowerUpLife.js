@@ -1,10 +1,7 @@
 import { BaseItem } from '../BaseItem.js';
 
 /**
- * PowerUpLife - Extra Life Item
- * 
- * Grants the player an additional life when collected.
- * Displays a heart icon and animates with a pulsing effect.
+ * Vida extra
  */
 export class PowerUpLife extends BaseItem {
   constructor(scene, x, y) {

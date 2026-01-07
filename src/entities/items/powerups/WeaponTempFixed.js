@@ -3,10 +3,7 @@ import { ITEMS } from '../../../core/constants.js';
 import { HERO_WEAPON } from '../../Hero.js';
 
 /**
- * WeaponTempFixed - Temporary Fixed Harpoon Weapon
- * 
- * Temporarily changes hero weapon to fixed harpoon mode.
- * Lasts for 10-15 seconds, then reverts to normal harpoon.
+ * Harpoon fijo temporal
  */
 
 export class WeaponTempFixed extends BaseItem {

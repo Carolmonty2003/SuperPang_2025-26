@@ -1,17 +1,4 @@
-/**
- * BaseItem Class
- * 
- * Base class for all collectible items that can be dropped in the game.
- * Provides shared behavior for all droppable items:
- * - Physics (gravity, velocity, bounce)
- * - World-bounds collision
- * - Hitbox management
- * - Active/consumed state tracking
- * - Optional time-to-live (TTL) with auto-despawn
- * - Player pickup detection
- * 
- * Subclasses should override onPickup(hero) to implement their unique effect.
- */
+
 
 export class BaseItem extends Phaser.Physics.Arcade.Sprite {
   /**
@@ -33,16 +20,16 @@ export class BaseItem extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this);
     scene.physics.world.enable(this);
 
-    // Configuration with defaults
+    // Configuración con valores por defecto
     this.itemType = config.itemType || 'unknown';
     this.ttl = config.ttl !== undefined ? config.ttl : 0; // 0 = infinite (no TTL)
     this.originalTTL = this.ttl;
     
-    // State management
+    // Gestión de estado
     this.active = true;
     this.consumed = false;
     
-    // Configure physics - caída suave y sin rebote
+    // Configura física: caída suave y sin rebote
     this.body.setGravityY(config.gravity !== undefined ? config.gravity : 200);
     this.body.setBounce(0); // Sin rebote - se quedan estáticos
     this.body.setCollideWorldBounds(true);
@@ -50,22 +37,22 @@ export class BaseItem extends Phaser.Physics.Arcade.Sprite {
     this.body.setAngularVelocity(0);
     this.body.setAngularAcceleration(0);
     
-    // Set initial velocity
+    // Asigna velocidad inicial
     const velX = config.initialVelocityX !== undefined ? config.initialVelocityX : 0;
     const velY = config.initialVelocityY !== undefined ? config.initialVelocityY : 100;
     this.body.setVelocity(velX, velY);
     
-    // Escala más grande (2.5x) y sprite completamente fijo sin rotación
+    // Escala grande y sprite fijo sin rotación
     this.setScale(2.5);
     this.setRotation(0);
     this.setAngularVelocity(0);
     this.rotation = 0;
     this.angle = 0;
     
-    // Visual effects - subtle glow/pulse
+    // Efectos visuales: brillo/pulso
     this.createVisualEffects();
     
-    // TTL warning blink (last 2 seconds)
+    // Parpadeo de advertencia TTL (últimos 2 segundos)
     if (this.ttl > 0) {
       this.ttlBlinkTimer = null;
     }

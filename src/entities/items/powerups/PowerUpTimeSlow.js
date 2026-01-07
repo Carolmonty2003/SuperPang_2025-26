@@ -2,11 +2,7 @@ import { BaseItem } from '../BaseItem.js';
 import { ITEMS } from '../../../core/constants.js';
 
 /**
- * PowerUpTimeSlow - Slow Motion Item (Reloj de Arena / Hourglass)
- * 
- * Slows down all balls to a fraction of their normal speed.
- * Balls continue moving but much slower, making them easier to hit.
- * Effect lasts for a duration before returning to normal speed.
+ * Ralentiza todas las bolas
  */
 
 export class PowerUpTimeSlow extends BaseItem {

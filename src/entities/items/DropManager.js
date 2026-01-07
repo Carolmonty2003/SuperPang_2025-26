@@ -1,7 +1,4 @@
-// src/entities/items/DropManager.js
-// Lee capas "drops" y "drops_platforms" del tilemap y:
-// - drops: crea el item directamente en el mundo
-// - drops_platforms: asigna dropType a la plataforma más cercana (para soltarlo al romperse)
+
 
 export class DropManager {
   /**
@@ -9,7 +6,7 @@ export class DropManager {
    * @param {Phaser.Tilemaps.Tilemap} map
    * @param {Dropper} dropper
    * @param {PlatformManager} platformManager
-   * @param {Map<string, any>} platformObjects  (opcional, por si tienes plataformas antiguas)
+   * @param {Map<string, any>} platformObjects  
    */
   constructor(scene, map, dropper, platformManager, platformObjects = null) {
     this.scene = scene;
@@ -24,9 +21,6 @@ export class DropManager {
     this._assignPlatformDrops();
   }
 
-  // ------------------------------------------------------------
-  // 1) Capa "drops" => spawnea items en el mundo
-  // ------------------------------------------------------------
   _createWorldDrops() {
     const layer = this.map.getObjectLayer('drops');
     if (!layer || !layer.objects) return;
@@ -35,7 +29,7 @@ export class DropManager {
       const dropId = this._readProp(obj, ['Drop', 'drop', 'DROP']);
       if (!dropId) return;
 
-      // Spawnea garantizado en el mundo
+      // Spawnea el ítem garantizado en el mundo
       this.dropper.dropFrom(null, obj.x, obj.y, {
         itemType: dropId,
         guaranteed: true
@@ -43,9 +37,6 @@ export class DropManager {
     });
   }
 
-  // ------------------------------------------------------------
-  // 2) Capa "drops_platforms" => asigna dropType a plataforma cercana
-  // ------------------------------------------------------------
   _assignPlatformDrops() {
     const layer = this.map.getObjectLayer('drops_platforms');
     if (!layer || !layer.objects) return;
@@ -60,8 +51,7 @@ export class DropManager {
       const closest = this._findClosestPlatform(platforms, obj.x, obj.y);
       if (!closest) return;
 
-      // Asignar dropType de forma flexible
-      // (si tu plataforma tiene setDropType úsalo, si no, crea propiedad)
+      // Asigna dropType de forma flexible
       if (typeof closest.setDropType === 'function') {
         closest.setDropType(dropId);
       } else {
@@ -73,9 +63,6 @@ export class DropManager {
     });
   }
 
-  // ------------------------------------------------------------
-  // Helpers
-  // ------------------------------------------------------------
   _readProp(obj, possibleNames = []) {
     if (!obj || !obj.properties) return null;
 
@@ -114,10 +101,7 @@ export class DropManager {
     for (const p of platforms) {
       if (!p) continue;
 
-      // Coordenadas en MUNDO (pixeles):
-      // - Nuevo sistema: PlatformBase expone getCenterPosition()
-      // - Otros: getCenter(), body.center
-      // - Legacy: x/y ya están en mundo
+
       let px;
       let py;
 

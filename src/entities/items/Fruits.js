@@ -1,21 +1,12 @@
 import { BaseItem } from './BaseItem.js';
 import { EVENTS } from '../../core/events.js';
 
-/**
- * Fruits - Collectible Score Items
- * 
- * Fruit-style collectibles that grant score points when picked up.
- * Supports different variants with different score values.
- * 
- * NOTE: Sprites not yet implemented - using placeholder bonus spritesheet
- */
 
-// Fruit variants configuration
 export const FRUIT_VARIANT = {
-  SMALL: { points: 100, name: 'Cherry' },      // Small fruit
-  MEDIUM: { points: 250, name: 'Apple' },      // Medium fruit
-  LARGE: { points: 500, name: 'Melon' },       // Large fruit
-  SPECIAL: { points: 1000, name: 'Golden' }    // Special golden fruit
+  SMALL: { points: 100, name: 'Cherry' },      // Fruta pequeña
+  MEDIUM: { points: 250, name: 'Apple' },      // Fruta mediana
+  LARGE: { points: 500, name: 'Melon' },       // Fruta grande
+  SPECIAL: { points: 1000, name: 'Golden' }    // Fruta especial dorada
 };
 
 export class Fruits extends BaseItem {
@@ -51,9 +42,7 @@ export class Fruits extends BaseItem {
     this.points = points;
     this.fruitName = name;
     
-    // TODO: Set proper frame when fruit sprites are added
-    // For now, using a placeholder from bonus spritesheet
-    // this.setFrame(fruitFrameIndex);
+    // Asigna el frame correcto cuando se añadan sprites
   }
 
   /**
@@ -61,12 +50,12 @@ export class Fruits extends BaseItem {
    * @param {Hero} hero - The hero picking up this item
    */
   onPickup(hero) {
-    // Add score using events system
+    // Añade puntos usando el sistema de eventos
     if (this.scene && this.scene.game && this.scene.game.events) {
       this.scene.game.events.emit(EVENTS.game.SCORE_CHANGE, this.points);
     }
     
-    // Show floating score text
+    // Muestra texto flotante de puntaje
     this.showFloatingScore();
     
     // Optional: play collection sound

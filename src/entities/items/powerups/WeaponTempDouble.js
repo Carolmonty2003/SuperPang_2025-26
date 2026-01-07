@@ -3,10 +3,7 @@ import { ITEMS } from '../../../core/constants.js';
 import { HERO_WEAPON } from '../../Hero.js';
 
 /**
- * WeaponTempDouble - Temporary Double Harpoon Weapon
- * 
- * Temporarily changes hero weapon to double harpoon mode.
- * Lasts for 10-15 seconds, then reverts to normal harpoon.
+ * Doble arpón temporal
  */
 
 export class WeaponTempDouble extends BaseItem {

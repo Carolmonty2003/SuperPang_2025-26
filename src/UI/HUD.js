@@ -1,4 +1,3 @@
-// src/UI/Hud.js
 
 import { GAME_SIZE, HERO } from '../core/constants.js';
 import { EVENTS } from '../core/events.js';
@@ -125,14 +124,6 @@ export class Hud {
 
   setLives(value) {
     this.lives = value;
-
-    // Mostrar hasta 3 sprites según las vidas
-    // Ejemplo:
-    // 1 vida  -> 1 sprite
-    // 2 vidas -> 2 sprites
-    // 3 vidas -> 3 sprites
-    // 4 vidas -> 3 sprites + X1
-    // 5 vidas -> 3 sprites + X2
     const actualValue = value ?? 0;
     const visibleIcons = Math.min(3, actualValue);
     this.lifeIcons.forEach((icon, index) => {
@@ -148,10 +139,6 @@ export class Hud {
     }
   }
 
-  // ===== MODO ARMA =====
-  setMode(mode) {
-
-  }
 
   // ===== EXPERIENCIA (solo PanicMode) =====
   setExp(value) {

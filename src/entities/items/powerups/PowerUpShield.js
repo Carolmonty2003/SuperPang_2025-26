@@ -2,16 +2,7 @@ import { BaseItem } from '../BaseItem.js';
 import { ITEMS } from '../../../core/constants.js';
 
 /**
- * PowerUpShield - One-Hit Protection Item
- * 
- * Grants shield that absorbs one hit without taking damage.
- * 
- * DESIGN CHOICE: One-Hit Shield (up to 30 seconds)
- * - Blocks the next damage instance completely
- * - After breaking, grants 1 second of invulnerability
- * - Expires after 30 seconds if no hit is taken
- * - Does NOT stack (picking up multiple shields resets the timer)
- * - Visual indicator: cyan/blue glow around the hero
+ * Escudo de un golpe
  */
 
 export const SHIELD_CONFIG = {

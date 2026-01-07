@@ -10,7 +10,7 @@ export class BaseHexBall extends Phaser.Physics.Arcade.Sprite {
 
     
 
-    // Guardar referencia a la escena para splits/async (por si Phaser limpia this.scene)
+    // Referencia a la escena para divisiones y eventos
     this._sceneRef = scene;
 this.nextBallType = nextBallType;
     this.speedX = speedX;
@@ -18,7 +18,7 @@ this.nextBallType = nextBallType;
     this.scoreValue = scoreValue;
     this.ballColor = color; // Guardar el color para heredarlo
 
-    // Crear animación si no existe
+    // Crea animación si no existe
     const animKey = `${texture}_anim`;
     if (!scene.anims.exists(animKey)) {
       scene.anims.create({
@@ -29,47 +29,47 @@ this.nextBallType = nextBallType;
       });
     }
 
-    // Reproducir animación
+    // Inicia animación
     this.play(animKey);
 
-    // Aplicar color
+    // Aplica color
     this.setTint(this.ballColor);
 
-    // Escalar para hacer las bolas más grandes
+    // Escala el sprite
     this.setScale(3.5, 3.5);
 
-    // Configurar collider circular ANTES que coincida con el sprite
+    // Configura el collider circular
     const radius = this.width * 0.5;
     this.body.setCircle(radius);
     
-    // Centrar perfectamente el círculo
+    // Centra el collider
     this.body.setOffset(
       (this.width - radius * 2) / 2,
       (this.height - radius * 2) / 2
     );
 
-    // Física - SIN GRAVEDAD (IMPORTANTE: allowGravity PRIMERO)
-    this.body.setAllowGravity(false); // Desactivar gravedad completamente
-    this.body.setGravity(0, 0); // Asegurar que no hay gravedad
-    this.body.setBounce(0, 0); // Desactivar bounce automático, lo haremos manual
+    // Sin gravedad ni rebote automático
+    this.body.setAllowGravity(false);
+    this.body.setGravity(0, 0);
+    this.body.setBounce(0, 0);
     this.body.setCollideWorldBounds(true);
-    this.body.onWorldBounds = true; // Activar eventos de colisión con límites
+    this.body.onWorldBounds = true;
     
     this.body.immovable = false;
     this.body.moves = true;
     this.body.setDrag(0, 0);
     this.body.setMaxVelocity(10000, 10000);
     
-    // Calcular y guardar la velocidad constante (magnitud)
+    // Calcula y guarda la velocidad constante
     this.constantSpeed = Math.sqrt(this.speedX * this.speedX + this.speedY * this.speedY);
     
     // Velocidad actual
     this.velocityX = this.speedX;
     this.velocityY = this.speedY;
     
-    // Aplicar velocidad inicial
+    // Aplica velocidad inicial
     this.body.setVelocity(this.velocityX, this.velocityY);
-    // Emit BALL_CREATED event
+    // Emite evento BALL_CREATED
     if (scene && scene.game && scene.game.events) {
       scene.game.events.emit(EVENTS.enemy.BALL_CREATED, this);
     }
@@ -82,26 +82,26 @@ this.nextBallType = nextBallType;
     
     const worldBounds = this.scene.physics.world.bounds;
     
-    // Detectar colisión con límites izquierdo/derecho e invertir velocidad X
+    // Invierte velocidad X si choca con los lados
     if (this.body.blocked.left || this.body.blocked.right) {
       this.velocityX = -this.velocityX;
     }
     
-    // Detectar colisión con límites superior/inferior e invertir velocidad Y
+    // Invierte velocidad Y si choca con arriba/abajo
     if (this.body.blocked.up || this.body.blocked.down) {
       this.velocityY = -this.velocityY;
     }
     
-    // Mantener velocidad constante (normalizar y multiplicar por velocidad constante)
+    // Mantiene velocidad constante
     const currentSpeed = Math.sqrt(this.velocityX * this.velocityX + this.velocityY * this.velocityY);
     
     if (currentSpeed > 0) {
-      // Normalizar y aplicar velocidad constante
+      // Normaliza y aplica velocidad constante
       this.velocityX = (this.velocityX / currentSpeed) * this.constantSpeed;
       this.velocityY = (this.velocityY / currentSpeed) * this.constantSpeed;
     }
     
-    // Aplicar la velocidad constante al body
+    // Aplica velocidad constante al body
     this.body.setVelocity(this.velocityX, this.velocityY);
   }
 
@@ -110,19 +110,19 @@ this.nextBallType = nextBallType;
     if (this.scene && this.scene.game && this.scene.game.events) {
       this.scene.game.events.emit(EVENTS.game.SCORE_CHANGE, this.scoreValue);
     }
-    // Split si corresponde
+    // Divide la bola si corresponde
     if (this.nextBallType) {
       await this.split();
     }
-    // Reproducir audio pop
+    // Reproduce sonido pop
     if (this.scene && this.scene.sound) {
       this.scene.sound.play('burbuja_pop', { volume: 0.7 });
     }
-    // Eliminar del grupo antes de destruir
+    // Elimina del grupo antes de destruir
     if (this.scene && this.scene.ballsGroup && this.scene.ballsGroup.contains(this)) {
       this.scene.ballsGroup.remove(this, true, true);
     }
-    // Emit BALL_DESTROYED event antes de destruir
+    // Emite evento BALL_DESTROYED antes de destruir
     if (this.scene && this.scene.game && this.scene.game.events) {
       this.scene.game.events.emit(EVENTS.enemy.BALL_DESTROYED, this);
     }
@@ -130,9 +130,9 @@ this.nextBallType = nextBallType;
   }
 
   showFloatingScore() {
-    // Prevent crash if scene.add is not available (scene may be destroyed)
+    // Evita errores si la escena no existe
     if (!this.scene || !this.scene.add) return;
-    // Crear texto flotante con el puntaje
+    // Muestra puntaje flotante
     const scoreText = this.scene.add.text(this.x, this.y, `+${this.scoreValue}`, {
       fontSize: '32px',
       fontFamily: 'Arial',
@@ -143,7 +143,7 @@ this.nextBallType = nextBallType;
     });
     scoreText.setOrigin(0.5, 0.5);
     scoreText.setDepth(100); // Por encima de todo
-    // Animación: flota hacia arriba y desaparece
+    // Animación: flota y desaparece
     this.scene.tweens.add({
       targets: scoreText,
       y: scoreText.y - 50,

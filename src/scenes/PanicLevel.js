@@ -103,7 +103,6 @@ export class PanicLevel extends Phaser.Scene {
     this.load.setPath('assets/audio');
     this.load.audio('bandaSonora', 'bandaSonora.mp3');
     this.load.audio('disparo', 'disparo.mp3');
-    this.load.audio('burbuja_pop', 'burbuja_pop.mp3');
   }
 
   create() {
@@ -162,11 +161,7 @@ export class PanicLevel extends Phaser.Scene {
       this.scene.bringToTop('PauseMenu');
     });
     // --- INICIAR GENERACIÓN PROGRESIVA ---
-    // Spawn balls more frequently, including at the beginning
-    for (let i = 0; i < 3; i++) {
-      this.spawnBall();
-    }
-    this.time.addEvent({ delay: 2000, loop: true, callback: () => this.progressiveBallSpawn() });
+    this.time.addEvent({ delay: 5000, loop: true, callback: () => this.progressiveBallSpawn() });
     // --- SCORE GLOBAL ---
     this.globalScore = 0;
 
@@ -210,30 +205,7 @@ export class PanicLevel extends Phaser.Scene {
       if (size === 'big') ball = new HexBigBall(this, x, y, 1, 1, BALL_COLORS.GREEN);
       else ball = new HexMidBall(this, x, y, 1, 1, BALL_COLORS.YELLOW);
     }
-    if (ball) {
-      this.ballsGroup.add(ball);
-      console.log('[PANIC] Ball spawned and added to group:', ball, 'Current group:', this.ballsGroup.getChildren());
-      // Patch takeDamage to pop from group and log
-      ball._originalTakeDamage = ball.takeDamage;
-      ball.takeDamage = async (...args) => {
-        if (this.ballsGroup.contains(ball)) {
-          this.ballsGroup.remove(ball, true, true);
-          console.log('[PANIC] Ball destroyed and removed from group:', ball, 'Current group:', this.ballsGroup.getChildren());
-          // Call visual effect and score before destroying
-          if (typeof ball.showFloatingScore === 'function') ball.showFloatingScore();
-          if (typeof ball.playDestructionEffect === 'function') ball.playDestructionEffect();
-          // Await split if needed
-          if (typeof ball._originalTakeDamage === 'function') {
-            await ball._originalTakeDamage.apply(ball, args);
-          }
-          ball.destroy();
-        } else {
-          if (typeof ball._originalTakeDamage === 'function') {
-            await ball._originalTakeDamage.apply(ball, args);
-          }
-        }
-      };
-    }
+    this.ballsGroup.add(ball);
     // Drop aleatorio de powerup
     if (Math.random() < 0.3) { // 30% probabilidad
       this.time.delayedCall(500, () => {
@@ -406,79 +378,6 @@ export class PanicLevel extends Phaser.Scene {
       );
     }
 
-    // Balas destruyendo pelotas
-    this.physics.overlap(this.bullets, this.ballsGroup, this.onWeaponHitBall, null, this);
-  }
-
-  onWeaponHitBall(weapon, ball) {
-    if (weapon && weapon.active && ball && ball.active) {
-      if (weapon.destroy) weapon.destroy();
-      if (ball.takeDamage) ball.takeDamage();
-      if (this.hud && this.hud.addExp) {
-        this.hud.addExp(25);
-      }
-      this.globalScore += 25;
-      if (this.globalScore % 250 === 0) {
-        this.spawnSpecialBall();
-      }
-    }
-  }
-
-  spawnSpecialBall() {
-    const x = Phaser.Math.Between(100, GAME_SIZE.WIDTH - 100);
-    const y = Phaser.Math.Between(100, GAME_SIZE.HEIGHT - 200);
-    const specialTypes = [ 'specialBig', 'specialMid' ];
-    const type = specialTypes[Math.floor(Math.random() * specialTypes.length)];
-    let ball;
-    if (type === 'specialBig') ball = new SpecialBigBall(this, x, y, 1);
-    else ball = new SpecialMidBall(this, x, y, 1);
-    if (ball) {
-      this.ballsGroup.add(ball);
-      console.log('[PANIC] Special ball spawned and added to group:', ball, 'Current group:', this.ballsGroup.getChildren());
-      // Patch takeDamage to pop from group and log
-      ball._originalTakeDamage = ball.takeDamage;
-      ball.takeDamage = (...args) => {
-        if (this.ballsGroup.contains(ball)) {
-          this.ballsGroup.remove(ball, true, true);
-          console.log('[PANIC] Special ball destroyed and removed from group:', ball, 'Current group:', this.ballsGroup.getChildren());
-        }
-        if (typeof ball._originalTakeDamage === 'function') {
-          ball._originalTakeDamage.apply(ball, args);
-        }
-      };
-    }
-  }
-
-  onFixedHarpoonHitBall(fixedHarpoon, ball) {
-    if (fixedHarpoon && fixedHarpoon.active && ball && ball.active) {
-      if (fixedHarpoon.onBallHit) fixedHarpoon.onBallHit();
-      if (ball.takeDamage) ball.takeDamage();
-      // Sumar experiencia al HUD al destruir bola
-      if (this.hud && this.hud.addExp) {
-        this.hud.addExp(25);
-      }
-    }
-  }
-
-  onHeroHitBall(hero, ball)
-  {
-      // El héroe recibe daño cuando toca la pelota
-      if (hero && typeof hero.takeDamage === 'function') {
-          hero.takeDamage(1);
-      }
-  }
-
-  // ============================================================
-  // SPECIAL BALL EFFECTS
-  // ============================================================
-
-  /**
-   * Activate time stop effect (Clock special ball)
-   * Freezes all balls for the specified duration
-   * @param {number} duration - Duration in milliseconds
-   */
-  activateTimeStop(duration) {
-    const now = Date.now();
     const endTime = now + duration;
     
     // Don't stack - either set new time or extend to max

@@ -2,11 +2,7 @@ import { BaseItem } from '../BaseItem.js';
 import { ITEMS } from '../../../core/constants.js';
 
 /**
- * PowerUpTimeFreeze - Time Stop Item (Reloj / Clock)
- * 
- * Freezes all balls in place for a duration.
- * Similar to the special ball time freeze effect.
- * Balls remain suspended in mid-air until effect expires.
+ * Congela todas las bolas
  */
 
 export class PowerUpTimeFreeze extends BaseItem {

@@ -11,7 +11,7 @@ import { PowerUpBomb } from './powerups/PowerUpBomb.js';
 import { PowerUpTimeFreeze } from './powerups/PowerUpTimeFreeze.js';
 import { PowerUpTimeSlow } from './powerups/PowerUpTimeSlow.js';
 
-// Loot table por defecto
+// Tabla de botín por defecto
 export const DEFAULT_LOOT_TABLE = [
   { type: 'FRUITS', weight: 40, variant: 'SMALL' },
   { type: 'FRUITS', weight: 25, variant: 'MEDIUM' },
@@ -36,7 +36,7 @@ export const DROPPER_CONFIG = {
   INITIAL_VELOCITY_Y: -150,
 };
 
-// ✅ Mapeo desde strings del Tiled → ids internos del Dropper
+// Mapeo desde strings del Tiled a ids internos
 const TILED_DROP_MAP = {
   // powerups
   shield: 'POWER_UP_SHIELD',
@@ -55,7 +55,7 @@ const TILED_DROP_MAP = {
   power_up_weapon: 'POWER_UP_WEAPON',
 };
 
-// Normaliza y convierte lo que venga del mapa a un tipo interno
+// Normaliza y convierte el tipo del mapa a interno
 function normalizeItemType(rawType) {
   if (!rawType) return null;
 

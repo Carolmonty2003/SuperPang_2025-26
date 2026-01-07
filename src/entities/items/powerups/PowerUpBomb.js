@@ -2,11 +2,7 @@ import { BaseItem } from '../BaseItem.js';
 import { ITEMS } from '../../../core/constants.js';
 
 /**
- * PowerUpBomb - Screen Clear Item
- * 
- * Damages all balls on screen once.
- * Unlike special star ball, balls DO split into smaller ones.
- * This is a tactical clear that triggers normal ball behavior.
+ * Bomba: daña todas las bolas
  */
 
 export class PowerUpBomb extends BaseItem {
